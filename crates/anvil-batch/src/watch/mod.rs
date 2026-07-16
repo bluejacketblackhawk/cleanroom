@@ -543,9 +543,20 @@ mod tests {
 
         write_wav_fixture(&watch_dir.join("ep1.wav"));
 
-        // Wait for it to stabilize, get queued, and actually render (writing
-        // "ep1_mastered.wav" straight into the watched folder).
-        thread::sleep(Duration::from_millis(150));
+        // Wait for it to stabilize and actually get queued before waiting for idle. A fixed
+        // sleep races the watcher, and `wait_idle` returns immediately on a still-empty queue —
+        // so losing that race makes the assert below see 0 and fail for a reason that has nothing
+        // to do with what this test covers. It went red exactly that way on a loaded CI runner.
+        // Poll until it is queued, then let it render ("ep1_mastered.wav", written straight into
+        // the watched folder).
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while queue.snapshot().is_empty() && std::time::Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(10));
+        }
+        assert!(
+            !queue.snapshot().is_empty(),
+            "the watcher never queued the input"
+        );
         assert!(queue.wait_idle(Duration::from_secs(15)));
         assert_eq!(
             queue.snapshot().len(),

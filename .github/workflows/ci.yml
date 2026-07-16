@@ -46,19 +46,25 @@ jobs:
         run: cargo clippy --workspace --exclude anvil-desktop --all-targets -- -D warnings
       - name: build
         run: cargo build --workspace --exclude anvil-desktop
-      # macos-15-intel is the slowest runner GitHub rents, and it is also the one target where
-      # `ort` is built `load-dynamic` and resolves onnxruntime at run time (ADR-012 — no prebuilt
-      # x86_64-darwin binary exists). Every anvil-ai test that drives DeepFilterNet3 inference over
-      # real buffers — `denoise::` AND `dfn3::` alike — fails to finish on that box: three separate
-      # runs sat between 40 and 70+ minutes without completing, while the identical tests pass in
-      # under a second on windows-latest and macos-latest. Skipping one module just surfaced its
-      # sibling, so the honest boundary is the crate, not a test-name prefix.
+      # No test step on macos-15-intel — deliberately, and this is the honest scope.
       #
-      # anvil-ai still runs in FULL on every push on windows-latest and macos-latest — no coverage
-      # is lost, it just doesn't run here. This lane keeps exactly what it exists for: the x86_64
-      # anti-cliff signal (rustfmt, clippy, a full build, and every other crate's tests).
+      # That runner is the slowest GitHub rents AND the one target where `ort` is built
+      # `load-dynamic`, resolving onnxruntime at run time (ADR-012 — no prebuilt x86_64-darwin
+      # binary exists). Any test that drives DeepFilterNet3 inference is unusable there. Four
+      # separate runs proved it, and each "fix" only surfaced the next caller: anvil-ai's
+      # `denoise::` tests sat >70 min; skipping them surfaced `dfn3::`; excluding anvil-ai
+      # entirely surfaced anvil-cli's end-to-end `cmd_master_*` tests, which run the full chain.
+      # DFN3 has many callers, so excluding crates one at a time has no end. The identical tests
+      # pass in seconds on windows-latest and macos-latest.
+      #
+      # This lane keeps precisely what it was added for (see the job comment above): rustfmt,
+      # clippy, and a full x86_64 build — the anti-cliff signal that catches Intel-only linkage
+      # breaks, which is the failure mode that actually reached the release matrix unseen. The
+      # full test suite still runs on windows-latest and macos-latest on every push, so no test
+      # coverage is lost — it just doesn't run on the one box that physically cannot.
       - name: test
-        run: cargo test --workspace --exclude anvil-desktop ${{ matrix.os == 'macos-15-intel' && '--exclude anvil-ai' || '' }}
+        if: matrix.os != 'macos-15-intel'
+        run: cargo test --workspace --exclude anvil-desktop
 
   # Full Tauri app compile: frontend build + link the Rust shell. Windows is the M0-M5
   # ship target; macOS-arm64 is compiled from M0 as an extra anti-cliff signal (the macOS
