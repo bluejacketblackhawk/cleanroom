@@ -193,7 +193,10 @@ fn route_open_paths(app: &tauri::AppHandle, paths: Vec<String>) {
     {
         let mut inner = pending.inner.lock().expect("PendingOpens mutex poisoned");
         if !inner.ready {
-            tracing::info!(count = paths.len(), "open-with: queued (frontend not ready yet)");
+            tracing::info!(
+                count = paths.len(),
+                "open-with: queued (frontend not ready yet)"
+            );
             inner.queue.extend(paths);
             return;
         }

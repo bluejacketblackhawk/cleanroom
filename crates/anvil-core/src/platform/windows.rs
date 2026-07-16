@@ -213,7 +213,10 @@ fn remove_legacy_identity_at(classes_root: &RegKey, run_root: &RegKey) -> Platfo
             classes_root,
             &format!("SystemFileAssociations\\.{ext}\\shell\\{LEGACY_VERB_KEY}"),
         )?;
-        delete_subkey_if_present(classes_root, &format!(".{ext}\\OpenWithList\\{LEGACY_APP_KEY}"))?;
+        delete_subkey_if_present(
+            classes_root,
+            &format!(".{ext}\\OpenWithList\\{LEGACY_APP_KEY}"),
+        )?;
     }
     delete_subkey_all_if_present(classes_root, &format!("Applications\\{LEGACY_APP_KEY}"))?;
     match run_root.delete_value(LEGACY_AUTOSTART_VALUE) {
@@ -282,10 +285,15 @@ mod tests {
                 .unwrap();
         }
         root.classes
-            .create_subkey(format!("Applications\\{LEGACY_APP_KEY}\\shell\\open\\command"))
+            .create_subkey(format!(
+                "Applications\\{LEGACY_APP_KEY}\\shell\\open\\command"
+            ))
             .unwrap();
         root.run
-            .set_value(LEGACY_AUTOSTART_VALUE, &String::from("stale ANVIL autostart"))
+            .set_value(
+                LEGACY_AUTOSTART_VALUE,
+                &String::from("stale ANVIL autostart"),
+            )
             .unwrap();
 
         remove_legacy_identity_at(&root.classes, &root.run).unwrap();
