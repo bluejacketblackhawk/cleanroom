@@ -76,3 +76,12 @@ strip = true
 # while iterating; our own crates stay at opt-level 0 for debuggability.
 [profile.dev.package."*"]
 opt-level = 2
+
+# ...but opt-level 0 for our own crates makes the *tests* unusable, not just slow: anvil-ai's
+# DeepFilterNet3 denoise tests run real inference over real buffers, and on macos-15-intel
+# (the slowest runner) they ran past 70 minutes without finishing, while passing on arm64 mac
+# and Windows. Optimize our crates under `cargo test` only — `cargo build`/dev keeps opt-level 0
+# for debuggability. opt-level never changes IEEE float semantics, so the bit-identical
+# determinism guarantee (and every loudness/DNSMOS number gated on it) is unaffected.
+[profile.test]
+opt-level = 2
