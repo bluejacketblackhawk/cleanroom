@@ -76,17 +76,3 @@ strip = true
 # while iterating; our own crates stay at opt-level 0 for debuggability.
 [profile.dev.package."*"]
 opt-level = 2
-
-# ...but opt-level 0 makes anvil-ai's *tests* unusable, not merely slow: the DeepFilterNet3
-# denoise tests run real inference over real buffers, and on macos-15-intel (the slowest runner)
-# they ran past 70 minutes without finishing, while passing on arm64 mac and Windows.
-#
-# Scope this to anvil-ai deliberately. A blanket `[profile.test]` also speeds up anvil-batch,
-# whose watch tests are timing-sensitive by design (fixed sleeps against a 60ms stability
-# window) — that flipped `rendered_output_is_never_picked_up_as_a_new_input` red. Optimizing
-# only the crate that is actually compute-bound leaves every other crate's timing profile
-# exactly as it was. `cargo build`/dev still keeps opt-level 0 for debuggability, and opt-level
-# never changes IEEE float semantics, so the bit-identical determinism guarantee (and every
-# loudness/DNSMOS number gated on it) is unaffected.
-[profile.test.package.anvil-ai]
-opt-level = 2
