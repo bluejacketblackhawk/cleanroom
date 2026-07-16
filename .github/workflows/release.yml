@@ -32,10 +32,13 @@ name: Release (6-artifact matrix)
 # tauri.conf.json (no real signing keypair yet — `plugins.updater.pubkey` is still a TODO), so
 # `--bundles` deliberately omits `updater` and there is no `.app.tar.gz`/`latest.json` to attach.
 
+# TRIGGER — manual only, deliberately. The tag trigger is OFF because this matrix cannot bundle
+# yet: every `build + bundle` lane dies in tauri-build on a missing-glob error because nothing
+# provisions `vendor/models/*` or `vendor/ort/windows-x86_64/*` (the mac sidecar job covers
+# ffmpeg/whisper/sherpa only, and it passes). So every tag push failed the whole matrix and told
+# you nothing true. Shipping artifacts are built locally and attached by hand until that
+# provisioning is wired up; restore the `push: tags: ["v*"]` trigger once it is.
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       draft:

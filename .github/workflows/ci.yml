@@ -78,6 +78,20 @@ jobs:
       - name: Build frontend
         working-directory: apps/desktop
         run: npm run build
+      # tauri-build validates every `bundle.resources` glob at build time — even here, where the
+      # job only compiles and never bundles. A fresh checkout has no `vendor/` tree (the real
+      # sidecars are provisioned by release.yml), so those globs fail the build script and this
+      # job never delivers the cross-platform compile coverage it exists for. Stage empty
+      # placeholders purely to satisfy the globs: nothing here is bundled, signed, or shipped.
+      - name: Stage placeholder vendor tree (compile-only — never shipped)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            dirs="vendor/bundle-stage/macos/ffmpeg vendor/bundle-stage/macos/whisper vendor/bundle-stage/macos/sherpa/bin vendor/bundle-stage/macos/sherpa/lib vendor/bundle-stage/macos/models"
+          else
+            dirs="vendor/ffmpeg/windows-x86_64 vendor/whisper/windows-x86_64 vendor/sherpa/windows-x86_64 vendor/ort/windows-x86_64 vendor/models"
+          fi
+          for d in $dirs; do mkdir -p "$d"; : > "$d/placeholder"; done
       - name: Compile Tauri app
         run: cargo build -p anvil-desktop
 
