@@ -1,0 +1,22 @@
+[package]
+name = "anvil-multitrack"
+description = "ANVIL multitrack (03 §6): GCC-PHAT alignment + drift repair, crossgate bleed control, music ducking, per-track chains, and mixdown."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+anvil-media.workspace = true
+anvil-dsp.workspace = true
+anvil-project.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+realfft = "3"
+
+[dev-dependencies]
+hound = "3"
+serde_json.workspace = true

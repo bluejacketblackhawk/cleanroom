@@ -1,0 +1,26 @@
+[package]
+name = "anvil-core"
+description = "ANVIL core: session/project model, processing graph, job system, and the platform abstraction (ADR-006)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true
+dirs.workspace = true
+crossbeam-channel.workspace = true
+rayon.workspace = true
+
+# Windows registry access for the platform module's shell integration (M2 lane D:
+# context menu, file associations, autostart). ADR-006: OS-specific deps stay scoped
+# to the platform module's owning crate and target-gated so macOS builds don't pull
+# them in at all.
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"

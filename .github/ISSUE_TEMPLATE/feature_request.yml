@@ -1,0 +1,67 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please help us understand what you're trying to do and why it matters.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What's the pain point? What workflow doesn't work today?
+      placeholder: |
+        I need to add background music to podcast episodes, but ANVIL only processes voice/audio.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: How would you solve this? Be as concrete as possible.
+      placeholder: |
+        Add a "Background Music" track type that can be mixed at a specified level below the voice track. UI shows a slider to set music level (-20 dB to -3 dB).
+    validations:
+      required: true
+
+  - type: dropdown
+    id: persona
+    attributes:
+      label: Which persona does this serve?
+      description: Who would benefit most?
+      options:
+        - Podcaster (single host)
+        - Podcaster (multi-host/interview)
+        - Audiobook narrator
+        - Voiceover artist
+        - Music producer (speech-focused)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: other_persona
+    attributes:
+      label: Other persona (if "Other" selected above)
+      placeholder: "e.g., Live stream audio tech"
+
+  - type: checkboxes
+    id: wedge_fit
+    attributes:
+      label: Scope fit
+      options:
+        - label: "This feature fits ANVIL's wedge: **100% local, one-click podcast mastering** (not a DAW, not a full audio editor)."
+          required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Anything else? Competitors' examples, links, related features?
+      placeholder: |
+        - Auphonic can do this via a "Music" asset type
+        - Example workflow link: https://...
+        - Related to feature request #42

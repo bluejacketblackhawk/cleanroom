@@ -1,0 +1,78 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Cleanroom",
+  "version": "0.1.0",
+  "identifier": "com.cleanroom.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Cleanroom",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "acceptFirstMouse": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "resources/demo/bad-recording-example.wav": "resources/demo/bad-recording-example.wav"
+    },
+    "fileAssociations": [
+      { "ext": ["wav"], "name": "WAV Audio", "description": "WAV Audio File", "role": "Editor" },
+      { "ext": ["flac"], "name": "FLAC Audio", "description": "FLAC Audio File", "role": "Editor" },
+      { "ext": ["mp3"], "name": "MP3 Audio", "description": "MP3 Audio File", "role": "Editor" },
+      { "ext": ["m4a"], "name": "M4A Audio", "description": "M4A Audio File", "role": "Editor" },
+      { "ext": ["aac"], "name": "AAC Audio", "description": "AAC Audio File", "role": "Editor" },
+      { "ext": ["ogg"], "name": "Ogg Audio", "description": "Ogg Vorbis Audio File", "role": "Editor" },
+      { "ext": ["mp4"], "name": "MP4 Video", "description": "MP4 Video File (Cleanroom masters the audio track only)", "role": "Editor" },
+      { "ext": ["mov"], "name": "QuickTime Video", "description": "QuickTime Video File (Cleanroom masters the audio track only)", "role": "Editor" },
+      { "ext": ["mkv"], "name": "Matroska Video", "description": "Matroska Video File (Cleanroom masters the audio track only)", "role": "Editor" },
+      { "ext": ["webm"], "name": "WebM Video", "description": "WebM Video File (Cleanroom masters the audio track only)", "role": "Editor" }
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "./installer-hooks.nsh",
+        "startMenuFolder": "Cleanroom",
+        "languages": ["English"],
+        "displayLanguageSelector": false
+      },
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/latest.json"
+      ],
+      "pubkey": "TODO-OWNER-RUN-`npm run tauri signer generate`-AND-PASTE-PUBLIC-KEY-HERE",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Pin the toolchain so every dev + CI runner + release build uses the same rustc.
+# Exact-version pinning for reproducible release builds is a release-time task
+# (see ADR-003 §build reproducibility); "stable" is fine through M4.
+[toolchain]
+channel = "stable"
+components = ["clippy", "rustfmt"]
+profile = "default"

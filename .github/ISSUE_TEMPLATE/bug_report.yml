@@ -1,0 +1,94 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve ANVIL. Please provide as much detail as you can to help us understand and fix the issue.
+
+        **Privacy Note:** ANVIL is 100% local — your audio is never uploaded. Audio samples are optional and not required for bug reports. If you attach a diagnostics bundle (local file), it never leaves your machine unless you share it.
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. What did you expect to happen? What actually happened?
+      placeholder: |
+        Expected: clicking "Analyze" should show loudness measurements
+        Actual: the button is unresponsive and nothing happens
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps to reproduce the issue
+      placeholder: |
+        1. Open ANVIL
+        2. Load a WAV file (e.g., podcast_episode.wav)
+        3. Click "Analyze"
+        4. Wait 10 seconds
+        5. Bug occurs...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+      placeholder: |
+        The Analyze step should complete and display loudness, peaks, and voice/silence breakdown.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+    validations:
+      required: true
+
+  - type: input
+    id: os_version
+    attributes:
+      label: OS Version (if different from dropdown)
+      description: e.g., Windows 11 build 22621, macOS 13.2
+      placeholder: "Windows 11 build 22621"
+
+  - type: input
+    id: app_version
+    attributes:
+      label: ANVIL Version
+      description: Found in About or --version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: |
+        Any other info: file format/size, audio codec, error messages, screenshots, or a local diagnostics bundle.
+
+        Diagnostics bundle: Run ANVIL and look for the "Debug" or "Export Diagnostics" button. This exports local logs and system info (never audio).
+      placeholder: |
+        - File: podcast_episode.wav (48 kHz, 2 channels, 1.2 GB)
+        - Error message shown in UI: "Processing failed: Out of memory"
+        - Attached: diagnostics_2026-07-13.zip
+
+  - type: checkboxes
+    id: ack
+    attributes:
+      label: Privacy acknowledgment
+      options:
+        - label: "I understand ANVIL never auto-uploads audio or telemetry, and I'm providing this report voluntarily."
+          required: true

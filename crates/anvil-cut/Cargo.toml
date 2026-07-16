@@ -1,0 +1,20 @@
+[package]
+name = "anvil-cut"
+description = "ANVIL silence + filler cutting (03 §5): non-destructive cut-list (EDL) generation from VAD + ASR word timestamps, applied at render with equal-power crossfades."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+anvil-media.workspace = true
+anvil-project.workspace = true
+anvil-asr.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+hound = "3"

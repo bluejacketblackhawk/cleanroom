@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Info.plist ADDITIONS merged into the generated bundle Info.plist by Tauri
+  (tauri.macos.conf.json `bundle.macOS.infoPlist`). Tauri deep-merges these keys onto the
+  Info.plist it generates from the config (product name, version, CFBundleDocumentTypes from
+  `fileAssociations`, LSMinimumSystemVersion from `minimumSystemVersion`, …), so this file carries
+  ONLY the keys Tauri does not already emit.
+
+  NSMicrophoneUsageDescription is the purpose string macOS shows in the microphone consent (TCC)
+  prompt the first time Recording Guard opens an input stream. It is REQUIRED for mic access on
+  macOS 10.14+ regardless of signing state — an app that opens a `cpal` input stream without it is
+  killed by the OS with a TCC violation. This benefits even the current unsigned build.
+-->
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>ANVIL uses the microphone only for the Recording Guard pre-flight check — a live level meter, noise-floor reading, and clap-test room-echo estimate. The audio is analysed live and is never recorded, saved, or sent anywhere.</string>
+</dict>
+</plist>

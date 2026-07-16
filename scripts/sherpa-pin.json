@@ -1,0 +1,139 @@
+{
+  "_comment": [
+    "The exact sherpa-onnx speaker-diarization sidecar + default models ANVIL ships, keyed by",
+    "target. Single source of truth for scripts/fetch-sherpa.ps1 (windows-x86_64) and",
+    "scripts/fetch-sherpa-macos.sh (macos-aarch64 / macos-x86_64). Mirrors the whisper pin's",
+    "targets-map shape; the target string is format!(\"{}-{}\", consts::OS, consts::ARCH).",
+    "",
+    "sherpa-onnx is run as a SEPARATE PROCESS (sherpa-onnx-offline-speaker-diarization) and is",
+    "never linked into ANVIL. The engine binary is Apache-2.0 (k2-fsa/sherpa-onnx); the bundled",
+    "onnxruntime is MIT (Microsoft ONNX Runtime), redistributed by the sherpa release. Both are",
+    "cleanly redistributable in an MIT app. The 'shared' build is used because it carries the",
+    "runnable CLIs + onnxruntime; the diarization exe STATICALLY links the sherpa C++ core, so",
+    "only onnxruntime is needed beside it - proven per-target by otool -L / dumpbin.",
+    "",
+    "WINDOWS (windows-x86_64): the win-x64-shared build. Needs onnxruntime.dll + its",
+    "providers-shared stub next to the exe (flat layout).",
+    "MACOS (macos-aarch64 + macos-x86_64): ONE universal2 (fat arm64+x86_64) artifact, staged",
+    "byte-identically into BOTH target dirs (same hashes) for bundle symmetry. otool -L on the",
+    "mac binary shows it needs ONLY libonnxruntime.<ver>.dylib - there is NO providers-shared",
+    "equivalent on macOS (single dylib). The binary's baked rpath is @loader_path/../lib, so the",
+    "bin/ + lib/ sibling structure is PRESERVED (not flattened) and runs env-free with no fixup.",
+    "The upstream mac binary is adhoc linker-signed (runs unquarantined; the release-signing lane",
+    "re-signs every Mach-O with a Developer ID + hardened runtime for notarization).",
+    "",
+    "MODELS. Diarization needs a segmentation model + a speaker-embedding model to work at all,",
+    "so - unlike whisper weights (which the Models screen downloads on demand) - the two DEFAULT",
+    "models are bundled so diarization works out of the box. They are OS-INDEPENDENT (reused",
+    "across every target), so they stay a top-level models[] array, not per-target. Their sha256s",
+    "MUST equal the pins in crates/anvil-asr/src/model.rs KNOWN_DIARIZATION_MODELS; the anvil-asr",
+    "test `sherpa_pin_models_match_the_catalog` fails if they ever drift.",
+    "  - segmentation: pyannote-segmentation-3.0, MIT ((c) 2022 CNRS). Redistributable.",
+    "  - embedding: NVIDIA NeMo TitaNet-small, CC-BY-4.0 - REDISTRIBUTABLE WITH ATTRIBUTION.",
+    "    It is the default (not the Apache-2.0 WeSpeaker CAM++) because CAM++ is degenerate on",
+    "    the shipped Windows onnxruntime (collapses to one speaker); see model.rs. The required",
+    "    attribution ships as scripts/licenses/titanet-small-ATTRIBUTION.txt.",
+    "",
+    "Like whisper, anvil-asr's DiarizeSidecar::locate() does not hash-check at run time; these",
+    "pins are the provisioning-time integrity gate enforced by the fetch scripts.",
+    "",
+    "sha256 = RAW file hash (provisioning gate). content_sha256 (macOS members: the diarization exe",
+    "+ onnxruntime dylib) = the signing-INDEPENDENT Mach-O content hash used for a macOS",
+    "bundle-vs-pin check (the release lane Developer-ID re-signs both). NOTE: the upstream",
+    "universal2 x86_64 slice is UNSIGNED, but codesign signs it at packaging time, so content_sha256",
+    "is recorded from a FULLY (ad-hoc) signed copy = what the shipped, Developer-ID-signed .app",
+    "hashes to. See crates/anvil-asr/src/pin.rs macho_content_sha256 + ADR-012."
+  ],
+  "engine": "sherpa-onnx",
+  "targets": {
+    "windows-x86_64": {
+      "version": "v1.12.14",
+      "target": "windows-x86_64",
+      "binary": {
+        "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.14/sherpa-onnx-v1.12.14-win-x64-shared.tar.bz2",
+        "archive_sha256": "78fa331bac4d20828a867b14283950727ce668fe751d1a792352b7e035b0ffe1",
+        "archive_bytes": 26582353,
+        "license": "Apache-2.0",
+        "license_holder": "k2-fsa (sherpa-onnx); onnxruntime.dll: (c) Microsoft Corporation, MIT",
+        "license_files": ["sherpa-onnx-LICENSE.txt", "onnxruntime-LICENSE.txt"],
+        "binary_member": "sherpa-onnx-v1.12.14-win-x64-shared/bin/sherpa-onnx-offline-speaker-diarization.exe",
+        "binary_sha256": "65f6a5ceb5ecc5d5d706d61e78982dbb5943588cad2170b17673240f5b697712",
+        "members": [
+          { "archive_path": "sherpa-onnx-v1.12.14-win-x64-shared/bin/sherpa-onnx-offline-speaker-diarization.exe", "dest": "sherpa-onnx-offline-speaker-diarization.exe", "sha256": "65f6a5ceb5ecc5d5d706d61e78982dbb5943588cad2170b17673240f5b697712" },
+          { "archive_path": "sherpa-onnx-v1.12.14-win-x64-shared/bin/onnxruntime.dll", "dest": "onnxruntime.dll", "sha256": "b9dba35ec85d49c0186332c19a01601ae598ede701b79dcc70de50d4dba36fa6" },
+          { "archive_path": "sherpa-onnx-v1.12.14-win-x64-shared/bin/onnxruntime_providers_shared.dll", "dest": "onnxruntime_providers_shared.dll", "sha256": "ba645bf03bd60df622cf27d6111d1359506a90d0e3b5558f0a271f0b560cf97c" }
+        ]
+      }
+    },
+    "macos-aarch64": {
+      "version": "v1.12.14",
+      "target": "macos-aarch64",
+      "layout": "bin-lib-siblings",
+      "note": "universal2 single artifact; identical bytes/hashes to macos-x86_64. rpath @loader_path/../lib, no fixup.",
+      "binary": {
+        "source": "prebuilt-release-universal2",
+        "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.14/sherpa-onnx-v1.12.14-osx-universal2-shared.tar.bz2",
+        "archive_sha256": "7e0f7bec6b7a428e7594385f62ebb5c3fc9fadc863a12005302bfd67a45ee413",
+        "archive_bytes": 41533978,
+        "license": "Apache-2.0",
+        "license_holder": "k2-fsa (sherpa-onnx); libonnxruntime: (c) Microsoft Corporation, MIT",
+        "license_files": ["sherpa-onnx-LICENSE.txt", "onnxruntime-LICENSE.txt"],
+        "binary_member": "bin/sherpa-onnx-offline-speaker-diarization",
+        "binary_sha256": "08329a4b2d3098fa401ccfdc39ea75a45f9233bdbbeb6a0e01df7fe39d683f53",
+        "content_sha256": "bbe236573e5ba2d971907463641deb317c84c4324e893a8ff164bda5f5461d1b",
+        "members": [
+          { "archive_path": "sherpa-onnx-v1.12.14-osx-universal2-shared/bin/sherpa-onnx-offline-speaker-diarization", "dest": "bin/sherpa-onnx-offline-speaker-diarization", "sha256": "08329a4b2d3098fa401ccfdc39ea75a45f9233bdbbeb6a0e01df7fe39d683f53", "content_sha256": "bbe236573e5ba2d971907463641deb317c84c4324e893a8ff164bda5f5461d1b" },
+          { "archive_path": "sherpa-onnx-v1.12.14-osx-universal2-shared/lib/libonnxruntime.1.17.1.dylib", "dest": "lib/libonnxruntime.1.17.1.dylib", "sha256": "4979386d1e8b42f4177fa110dbc9600b10846662fe555eac2f338ffef3ab6bfa", "content_sha256": "6923f5fd6eb9faecb82c77ecdb00525afa43937380731d676f8ad88ed5797278" }
+        ]
+      }
+    },
+    "macos-x86_64": {
+      "version": "v1.12.14",
+      "target": "macos-x86_64",
+      "layout": "bin-lib-siblings",
+      "note": "same universal2 artifact as macos-aarch64 (identical bytes/hashes); staged separately for per-target bundle symmetry.",
+      "binary": {
+        "source": "prebuilt-release-universal2",
+        "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.14/sherpa-onnx-v1.12.14-osx-universal2-shared.tar.bz2",
+        "archive_sha256": "7e0f7bec6b7a428e7594385f62ebb5c3fc9fadc863a12005302bfd67a45ee413",
+        "archive_bytes": 41533978,
+        "license": "Apache-2.0",
+        "license_holder": "k2-fsa (sherpa-onnx); libonnxruntime: (c) Microsoft Corporation, MIT",
+        "license_files": ["sherpa-onnx-LICENSE.txt", "onnxruntime-LICENSE.txt"],
+        "binary_member": "bin/sherpa-onnx-offline-speaker-diarization",
+        "binary_sha256": "08329a4b2d3098fa401ccfdc39ea75a45f9233bdbbeb6a0e01df7fe39d683f53",
+        "content_sha256": "bbe236573e5ba2d971907463641deb317c84c4324e893a8ff164bda5f5461d1b",
+        "members": [
+          { "archive_path": "sherpa-onnx-v1.12.14-osx-universal2-shared/bin/sherpa-onnx-offline-speaker-diarization", "dest": "bin/sherpa-onnx-offline-speaker-diarization", "sha256": "08329a4b2d3098fa401ccfdc39ea75a45f9233bdbbeb6a0e01df7fe39d683f53", "content_sha256": "bbe236573e5ba2d971907463641deb317c84c4324e893a8ff164bda5f5461d1b" },
+          { "archive_path": "sherpa-onnx-v1.12.14-osx-universal2-shared/lib/libonnxruntime.1.17.1.dylib", "dest": "lib/libonnxruntime.1.17.1.dylib", "sha256": "4979386d1e8b42f4177fa110dbc9600b10846662fe555eac2f338ffef3ab6bfa", "content_sha256": "6923f5fd6eb9faecb82c77ecdb00525afa43937380731d676f8ad88ed5797278" }
+        ]
+      }
+    }
+  },
+  "models": [
+    {
+      "id": "pyannote-segmentation-3.0",
+      "kind": "segmentation",
+      "dest": "sherpa-onnx-pyannote-segmentation-3-0.onnx",
+      "onnx_sha256": "220ad67ca923bef2fa91f2390c786097bf305bceb5e261d4af67b38e938e1079",
+      "onnx_bytes": 5992913,
+      "license": "MIT ((c) 2022 CNRS)",
+      "license_file": "pyannote-segmentation-3.0-LICENSE.txt",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2",
+      "archive_sha256": "24615ee884c897d9d2ba09bb4d30da6bb1b15e685065962db5b02e76e4996488",
+      "archive_bytes": 6958444,
+      "archive_member": "sherpa-onnx-pyannote-segmentation-3-0/model.onnx"
+    },
+    {
+      "id": "titanet-small",
+      "kind": "embedding",
+      "dest": "nemo_en_titanet_small.onnx",
+      "onnx_sha256": "ad4a1802485d8b34c722d2a9d04249662f2ece5d28a7a039063ca22f515a789e",
+      "onnx_bytes": 40257283,
+      "license": "CC-BY-4.0 (NVIDIA NeMo - attribution required)",
+      "license_file": "titanet-small-ATTRIBUTION.txt",
+      "license_extra_file": "cc-by-4.0-legalcode.txt",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx"
+    }
+  ]
+}

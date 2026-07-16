@@ -1,0 +1,23 @@
+# ANVIL eval harness dependencies (dev-only; the app ships no Python).
+# run.py `smoke`/`validate`/`fixtures`/`conformance` need ONLY the standard library
+# (fixtures/conformance also need an ffmpeg binary, but not a pip package). `synth`,
+# `master-eval`, `determinism`, and `regress` (M1 lane 2) need the packages below.
+# Install into a local .venv:
+#     python -m venv .venv && .venv/Scripts/pip install -r requirements.txt
+#
+# Every metric that needs one of these degrades to a clean "skip" (not a crash) when
+# it's missing — see metrics/dnsmos.py::dnsmos_available(),
+# metrics/intrusive.py::intrusive_available(). onnxruntime/pesq/pystoi are the only
+# ones that are truly optional at the metric level; numpy/scipy/soundfile are load-
+# bearing for `synth`/`master-eval`/`regress` themselves (guarded by
+# run.py::_synth_deps_available(), which prints "skipped" rather than crashing).
+pytest           # eval/tests/ (parser + comparison-logic unit tests; no ffmpeg needed)
+numpy
+soundfile
+scipy
+jiwer            # WER (ASR gate, wired in a later lane)
+pesq             # PESQ-WB intrusive quality (paired synthetic set from `run.py synth`)
+pystoi           # STOI intrusive quality
+onnxruntime      # DNSMOS P.835 model (metrics/dnsmos.py; model itself is NOT in this
+                 # file — see eval/metrics/dnsmos.py module docstring for the fetch URL)
+# pyannote.metrics  # diarization DER (wired in a later lane)

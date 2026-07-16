@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeBundleCommand": "bash ../../scripts/stage-mac-sidecars.sh"
+  },
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "entitlements": "entitlements.mac.plist",
+      "infoPlist": "Info.macos.plist"
+    },
+    "resources": {
+      "resources/demo/bad-recording-example.wav": "resources/demo/bad-recording-example.wav",
+      "../../../vendor/bundle-stage/macos/ffmpeg/*": "ffmpeg/",
+      "../../../vendor/bundle-stage/macos/whisper/*": "whisper/",
+      "../../../vendor/bundle-stage/macos/sherpa/bin/*": "sherpa/bin/",
+      "../../../vendor/bundle-stage/macos/sherpa/lib/*": "sherpa/lib/",
+      "../../../vendor/bundle-stage/macos/models/*": "models/"
+    }
+  }
+}

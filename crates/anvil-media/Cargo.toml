@@ -1,0 +1,45 @@
+[package]
+name = "anvil-media"
+description = "ANVIL media IO (ADR-005): decode/encode/metadata/video, and the internal planar-f32 audio buffer."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+sha2.workspace = true
+# Domain deps (ADR-005). symphonia (MPL-2.0, file-level copyleft — fine in an MIT app,
+# see docs/licenses.md) is the primary pure-Rust decoder; rubato does 48 kHz sample-rate
+# conversion. ffmpeg is NOT linked — it is only ever run as an external LGPL sidecar
+# *process* (see `sidecar` module), so it is not a Cargo dependency.
+symphonia = { version = "0.5", default-features = false, features = [
+    "wav",
+    "pcm",
+    "adpcm",
+    "flac",
+    "mp3",
+    "aac",
+    "isomp4",
+    "ogg",
+    "vorbis",
+] }
+rubato = "0.16"
+# Metadata/chapters (ADR-005 §Metadata): MIT/Apache, reads+writes ID3v2.3/2.4 (incl. CHAP),
+# MP4 atoms, and Vorbis comments in place so untouched tags round-trip losslessly.
+lofty = "0.24"
+
+[dev-dependencies]
+# Asserts the ClipSpec JSON surface is snake_case (M4 Clip Studio API contract).
+serde_json.workspace = true
+# Fixtures are synthesized at test time so no large binaries live in the repo: `hound`
+# writes the WAV sine, `flacenc` (pure-Rust, Apache-2.0) writes the FLAC sine. Both are
+# dev-only — they are never part of the shipped crate.
+hound = "3"
+# default-features off drops flacenc's `par` (threads), `log`, and `serde` extras — the
+# fixture encoder is single-threaded and deterministic without them.
+flacenc = { version = "0.4", default-features = false }

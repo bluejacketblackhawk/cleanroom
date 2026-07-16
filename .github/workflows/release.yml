@@ -1,0 +1,653 @@
+name: Release (6-artifact matrix)
+
+# M6 §S6 — tag-triggered build matrix producing the full owner-directed artifact set:
+#   * win-x64    NSIS installer + portable zip        (build-windows-x64   — shipping today)
+#   * win-arm64  NSIS installer + portable zip        (build-windows-arm64 — PARTIAL, see below)
+#   * mac-arm64  .app / DMG                            (build-macos [aarch64-apple-darwin])
+#   * mac-x64    .app / DMG                            (build-macos [x86_64-apple-darwin])
+# Every build job compiles, bundles, checksums, and uploads its artifact; the final `release`
+# job downloads them all, writes a merged CHECKSUMS.txt, and attaches everything to a GitHub
+# Release. Nothing here publishes on a normal push — only the final `gh release` step runs, and
+# only once the owner has actually pushed a tag.
+#
+# HONESTY-FIRST — win-arm64 is a PARTIAL lane and says so.  The arm64 Windows shell *compiles*
+# (that step is live and is the anti-cliff signal), but it cannot yet BUNDLE: it needs
+# windows-aarch64 sidecar pins + provisioning that do not exist yet (whisper.cpp and sherpa-onnx
+# publish no Windows-arm64 binaries at the pinned versions, and the pin JSONs / fetch scripts —
+# owned by another lane — have no windows-aarch64 entries). Every step that depends on those is a
+# real, correctly-wired step gated behind `if: false # BLOCKED:` with the exact blocker, rather
+# than a lie that would go red or ship an empty installer. The release tolerates win-arm64 being
+# absent (see the `release` job's `if:`). See the task report / STATE §M6 for the upstream truth
+# table and the pin entries this lane needs.
+#
+# SIGNING is gated on owner decisions and is inert until then:
+#   * Windows (05 §M5.B, 07 §3): `SIGNING_METHOD` repo/env var picks SignPath OSS vs Azure
+#     Trusted Signing; the two steps below are correct tool invocations that skip cleanly while
+#     the var is unset. Unchanged from the M5 Windows workflow.
+#   * macOS (M6, owner decision "Apple Dev $99/yr"): `APPLE_SIGNING` mirrors that pattern. Until
+#     it is set with a Developer ID + notarization secrets, mac bundles are UNSIGNED ad-hoc —
+#     they run via right-click → Open (Gatekeeper), documented in the release body.
+#
+# Updater artifacts (`.sig`) are NOT produced on any platform: `createUpdaterArtifacts` is off in
+# tauri.conf.json (no real signing keypair yet — `plugins.updater.pubkey` is still a TODO), so
+# `--bundles` deliberately omits `updater` and there is no `.app.tar.gz`/`latest.json` to attach.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Create the GitHub Release as a draft"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ===========================================================================================
+  # win-x64 — the shipping M5 job, essentially unchanged (renamed build-windows -> build-windows-x64).
+  # The fetch-*.ps1 provisioners read `.targets.'windows-x86_64'` internally now (the pins became
+  # per-target maps in M6/S2); they take no arguments, so these calls are unchanged and correct.
+  # ===========================================================================================
+  build-windows-x64:
+    name: build + bundle (windows-latest / x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Install frontend deps
+        working-directory: apps/desktop
+        run: npm ci
+
+      # Provision the redistributable sidecars BEFORE the build so tauri.conf.json's
+      # bundle.resources (vendor/ffmpeg|whisper|sherpa + vendor/models) and the portable
+      # packager both find them. Each script downloads a pinned, immutable release asset,
+      # hard-verifies its sha256 against scripts/*-pin.json, extracts only the audited files
+      # (and, for ffmpeg, runs the LGPL configure-line gate), and copies the licence text next
+      # to the binary. A hash/licence mismatch fails the release here rather than shipping.
+      - name: Provision bundled sidecars (ffmpeg LGPL, whisper MIT, sherpa Apache-2.0 + models)
+        shell: pwsh
+        run: |
+          ./scripts/fetch-ffmpeg.ps1
+          ./scripts/fetch-whisper.ps1
+          ./scripts/fetch-sherpa.ps1
+
+      - name: Regenerate the bundled onboarding demo file
+        # Deterministic (seeded PRNG) — committed to the repo already, this just proves CI
+        # produces the byte-identical file rather than trusting a stale checked-in copy.
+        working-directory: apps/desktop
+        run: |
+          node scripts/generate-demo-file.mjs
+          git diff --exit-code -- src-tauri/resources/demo/bad-recording-example.wav
+
+      - name: Build the NSIS installer
+        working-directory: apps/desktop
+        run: npm run tauri build -- --bundles nsis
+
+      - name: Build the portable zip
+        working-directory: apps/desktop
+        run: npm run package:portable
+
+      # Resolve the bundle dir ONCE, dual-candidate (same pattern as the mac legs). cargo/tauri put
+      # release builds in the WORKSPACE-ROOT target/ — src-tauri is a workspace member with no
+      # target-dir override; STATE.md records the real M5.5 installer at
+      # target/release/bundle/nsis/ANVIL_0.1.0_x64-setup.exe, and package-portable.mjs resolves
+      # workspace-root first — so the previously hardcoded apps/desktop/src-tauri/target/... paths
+      # in the steps below had never been exercised (this workflow has not run yet) and were
+      # dead-on-arrival. The src-tauri-local dir stays as the fallback in case the layout ever
+      # changes. A candidate must actually CONTAIN the NSIS exe (not merely exist, stale); fails
+      # loudly listing both probed paths otherwise.
+      - name: Locate the bundle directory
+        id: bundle
+        shell: pwsh
+        run: |
+          $candidates = @(
+            (Join-Path $env:GITHUB_WORKSPACE 'target/release/bundle'),
+            (Join-Path $env:GITHUB_WORKSPACE 'apps/desktop/src-tauri/target/release/bundle')
+          )
+          $dir = $candidates | Where-Object { Test-Path (Join-Path $_ 'nsis/*.exe') } | Select-Object -First 1
+          if (-not $dir) {
+            $nl = [Environment]::NewLine
+            throw ("no bundle directory containing nsis/*.exe found. Probed:" + $nl + "  " + ($candidates -join ($nl + "  ")))
+          }
+          $dir = $dir -replace '\\', '/'
+          "dir=$dir" >> $env:GITHUB_OUTPUT
+          Write-Host "bundle dir: $dir"
+
+      # DirectML.dll ship-gate. anvil-ai's `ort` (directml feature) links a DirectML-flavored
+      # onnxruntime with a LOAD-TIME dependency on DirectML.dll — without it beside the exe the
+      # installed app crashes on launch ("directml.dll was not found"). ort drops only a symlink
+      # into target/release at build time, which the bundler won't follow, so scripts/stage-
+      # directml.ps1 copies the real ~18 MB file into vendor/ort. That runs automatically here
+      # via tauri.conf.json's `beforeBundleCommand` during the NSIS build above; bundle.resources
+      # maps it to the exe root ("./") and package-portable.mjs copies it into the zip. Prove the
+      # REAL file (not a 147-byte symlink stub) actually landed in BOTH artifacts, so a regression
+      # fails the release right here instead of on every user's machine.
+      - name: Verify DirectML.dll is bundled next to the exe
+        working-directory: ${{ steps.bundle.outputs.dir }}
+        shell: pwsh
+        run: |
+          $minBytes = 1MB
+
+          # 1. Staged source — proves beforeBundleCommand ran stage-directml.ps1.
+          $staged = Join-Path $env:GITHUB_WORKSPACE 'vendor\ort\windows-x86_64\DirectML.dll'
+          if (-not (Test-Path $staged) -or (Get-Item $staged).Length -le $minBytes) {
+            throw "stage-directml.ps1 did not produce a real DirectML.dll at $staged"
+          }
+          Write-Host "staged DirectML.dll: $((Get-Item $staged).Length) bytes"
+
+          # 2. Portable zip must carry DirectML.dll at the root (exact size via ZipArchive).
+          $zip = Get-ChildItem -Recurse -File -Filter *.zip | Select-Object -First 1
+          if (-not $zip) { throw 'portable zip not found' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName)
+          try {
+            $entry = $archive.Entries | Where-Object { $_.FullName -eq 'DirectML.dll' }
+            if (-not $entry) { throw "DirectML.dll missing from portable zip $($zip.Name)" }
+            if ($entry.Length -le $minBytes) { throw "DirectML.dll in $($zip.Name) is only $($entry.Length) bytes (symlink stub?)" }
+            Write-Host "portable zip DirectML.dll: $($entry.Length) bytes"
+          } finally { $archive.Dispose() }
+
+          # 3. NSIS installer must contain DirectML.dll (7-Zip is pre-installed on windows-latest).
+          $nsis = Get-ChildItem -Recurse -File -Filter *.exe | Select-Object -First 1
+          if (-not $nsis) { throw 'NSIS installer not found' }
+          $listing = & 'C:\Program Files\7-Zip\7z.exe' l $nsis.FullName
+          if ($LASTEXITCODE -ne 0) { throw "7z could not list $($nsis.Name)" }
+          if (-not ($listing | Select-String -SimpleMatch 'DirectML.dll')) {
+            throw "DirectML.dll missing from NSIS installer $($nsis.Name)"
+          }
+          Write-Host "NSIS installer contains DirectML.dll"
+          Write-Host 'OK: real DirectML.dll present in both the portable zip and the NSIS installer.'
+
+      # --- Signing: owner decision, see the module doc above. Both steps below are
+      # correct-but-inert until SIGNING_METHOD is set as a repo/environment variable. ---
+
+      - name: Sign installer (SignPath OSS)
+        if: vars.SIGNING_METHOD == 'signpath'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: "${{ secrets.SIGNPATH_API_TOKEN }}"
+          organization-id: "${{ vars.SIGNPATH_ORG_ID }}"
+          project-slug: "anvil"
+          signing-policy-slug: "release-signing"
+          github-artifact-id: "" # TODO(owner): wire once a SignPath project exists.
+          wait-for-completion: true
+
+      - name: Sign installer (Azure Trusted Signing)
+        if: vars.SIGNING_METHOD == 'azure-trusted-signing'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: "${{ secrets.AZURE_TENANT_ID }}"
+          azure-client-id: "${{ secrets.AZURE_CLIENT_ID }}"
+          azure-client-secret: "${{ secrets.AZURE_CLIENT_SECRET }}"
+          endpoint: "${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT }}"
+          trusted-signing-account-name: "${{ vars.AZURE_TRUSTED_SIGNING_ACCOUNT }}"
+          certificate-profile-name: "${{ vars.AZURE_TRUSTED_SIGNING_PROFILE }}"
+          files-folder: ${{ steps.bundle.outputs.dir }}/nsis
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Checksums
+        working-directory: ${{ steps.bundle.outputs.dir }}
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -File -Include *.exe,*.zip
+          if ($files.Count -eq 0) { throw "no installer/portable artifacts found to checksum" }
+          $lines = foreach ($f in $files) {
+            $hash = (Get-FileHash -Algorithm SHA256 $f.FullName).Hash.ToLower()
+            "$hash  $($f.Name)"
+          }
+          $lines | Out-File -Encoding utf8 -FilePath CHECKSUMS.txt
+          Get-Content CHECKSUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: anvil-windows-x64-${{ github.ref_name }}
+          path: |
+            ${{ steps.bundle.outputs.dir }}/nsis/*.exe
+            ${{ steps.bundle.outputs.dir }}/portable/*.zip
+            ${{ steps.bundle.outputs.dir }}/CHECKSUMS.txt
+          if-no-files-found: error
+
+  # ===========================================================================================
+  # win-arm64 — PARTIAL. The shell compiles (live, anti-cliff); bundling is BLOCKED on
+  # windows-aarch64 sidecars + pins owned by another lane. See the header. This job is allowed to
+  # go green with no artifact (compile-only) OR to be absent/red without failing the release.
+  # ===========================================================================================
+  build-windows-arm64:
+    name: build + bundle (windows-11-arm / arm64)
+    # windows-11-arm = GitHub's public Windows 11 Arm64 runner (GA 2025; alias windows-11-arm64).
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Install frontend deps
+        working-directory: apps/desktop
+        run: npm ci
+
+      # LIVE anti-cliff compile. Proves the Tauri shell + all 12 engine crates LINK for
+      # aarch64-pc-windows-msvc. This is build-AVAILABLE today (verified 2026-07-15): ort
+      # v2.0.0-rc.12's ort-sys/build/download/dist.txt HAS an `aarch64-pc-windows-msvc` row
+      # (variant `none`, onnxruntime ms@1.24.2, sha256 8f3a87f1ab1a22d690534b1c67225ef6aadfb51bf960c5d87f250451e46aec8f),
+      # so the existing `cfg(windows)` `download-binaries` block in crates/anvil-ai/Cargo.toml
+      # resolves for arm64 with NO crate change. The single residual unknown — whether that arm64
+      # onnxruntime build carries the DirectML EP so the `directml` feature registers/links — is
+      # exactly what THIS compile surfaces. If it fails here, the fix is a crates/ decision (a
+      # `cfg(all(windows, target_arch="aarch64"))` block dropping `directml` or using load-dynamic,
+      # mirroring the Intel-mac split) — REPORT to the owning lane, do not hack it in from here.
+      - name: Compile Tauri app (aarch64-pc-windows-msvc)
+        run: cargo build -p anvil-desktop --target aarch64-pc-windows-msvc
+
+      # ---------------------------------------------------------------------------------------
+      # Everything below is the INTENDED bundle pipeline, wired but BLOCKED. Each `if: false`
+      # carries the precise blocker. Flip to live per-item as the pin/script gaps close.
+      # ---------------------------------------------------------------------------------------
+
+      - name: Provision ffmpeg sidecar (win-arm64)
+        # BLOCKED: needs a `windows-aarch64` entry in scripts/ffmpeg-pin.json AND fetch-ffmpeg.ps1
+        # made arch-aware (it hardcodes `.targets.'windows-x86_64'`) — both owned by another lane.
+        # The UPSTREAM ASSET IS REAL AND VERIFIED (2026-07-15), ready to pin:
+        #   url:    https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-14-13-19/ffmpeg-n8.1.2-22-g94138f6973-winarm64-lgpl-8.1.zip
+        #   sha256: 7dbdf3a633d43cd71895b527cbafcdb4a2a5edf347cc5b6a1c3f14472d6dfc99  (94317290 bytes)
+        #   member: ffmpeg-n8.1.2-22-g94138f6973-winarm64-lgpl-8.1/bin/ffmpeg.exe  (LGPL-3.0, --enable-version3)
+        if: false # BLOCKED: no windows-aarch64 ffmpeg pin + non-arch-aware fetch-ffmpeg.ps1 (asset verified — see above)
+        shell: pwsh
+        run: |
+          ./scripts/fetch-ffmpeg.ps1   # future: an -Arch arm64 parameter reading .targets.'windows-aarch64'
+
+      - name: Provision whisper.cpp sidecar (win-arm64, from source)
+        # BLOCKED: whisper.cpp v1.9.1 publishes NO Windows-arm64 asset (verified 2026-07-15: the
+        # release ships only whisper-bin-Win32.zip / whisper-bin-x64.zip + CUDA/BLAS x64 + an
+        # Apple xcframework + ubuntu-arm64). This lane must BUILD whisper-cli from the v1.9.1 tag
+        # on the arm runner with cmake, mirroring scripts/build-whisper-macos.sh's flags minus the
+        # mac bits (GGML_NATIVE=OFF, BUILD_SHARED_LIBS=ON, no Metal). That build script does not
+        # exist (scripts/ is another lane's) and there is no windows-aarch64 whisper pin.
+        if: false # BLOCKED: no Win-arm64 whisper prebuilt; needs a from-source build script + pin (another lane)
+        shell: pwsh
+        run: |
+          Write-Host "TODO cmake-build whisper.cpp v1.9.1 for aarch64-pc-windows-msvc, stage into vendor/whisper/windows-aarch64"
+
+      - name: Provision sherpa-onnx sidecar (win-arm64)
+        # BLOCKED: sherpa-onnx v1.12.14 publishes NO Windows-arm64 asset (verified 2026-07-15: the
+        # release ships win-x64 {shared,cuda,jni,static} + win-x86 static only). A Windows-arm64
+        # diarization sidecar would require building sherpa-onnx from source (large C++/onnxruntime
+        # build) on the arm runner; no script and no windows-aarch64 sherpa pin exist. Diarization
+        # would be unavailable on win-arm64 until this lands.
+        if: false # BLOCKED: no Win-arm64 sherpa prebuilt; from-source build unscoped (another lane)
+        shell: pwsh
+        run: |
+          Write-Host "TODO build/stage sherpa-onnx diarization for aarch64-pc-windows-msvc"
+
+      - name: Regenerate demo file + build NSIS installer + portable zip (win-arm64)
+        # BLOCKED transitively: the NSIS bundle's tauri.conf.json bundle.resources expect the three
+        # sidecars above staged under vendor/*/windows-aarch64 (a tauri.windows-arm overlay does not
+        # exist), and package-portable.mjs hardcodes vendor/*/windows-x86_64 + a `-portable-x64.zip`
+        # name (apps/ — another lane). Also DirectML.dll: if the `directml` feature stays on for
+        # arm64, stage-directml.ps1 (hardcoded windows-x86_64) needs the arm64 DirectML.dll.
+        if: false # BLOCKED: sidecars above unavailable; tauri arm overlay + arch-aware package-portable.mjs needed (apps/ + scripts/)
+        working-directory: apps/desktop
+        run: |
+          node scripts/generate-demo-file.mjs
+          npm run tauri build -- --target aarch64-pc-windows-msvc --bundles nsis
+          npm run package:portable
+
+      - name: Checksums + upload (win-arm64)
+        if: false # BLOCKED: no bundle artifacts exist until the steps above are unblocked
+        shell: pwsh
+        run: |
+          Write-Host "TODO checksum + upload anvil-windows-arm64-${{ github.ref_name }} once bundling is unblocked"
+
+  # ===========================================================================================
+  # mac provisioning — ONE arm64 job builds BOTH arches' sidecars, then hands vendor/ to the
+  # per-arch bundle legs as an artifact.  This split is FORCED by the scripts, not a preference:
+  # scripts/build-ffmpeg-macos.sh refuses any non-arm64 host (`uname -m == arm64` guard) and
+  # cross-compiles x86_64 FROM arm64 — so the Intel runner physically cannot build its own ffmpeg.
+  # build-whisper-macos.sh likewise cross-builds x86_64 from arm64; fetch-sherpa-macos.sh stages
+  # the universal2 binary for both. Running all three once here (arm64) yields vendor/ for both
+  # targets. The ~20-min-per-arch from-source ffmpeg build is cached across RUNS (keyed on the pin
+  # JSONs' mac entries) and passed WITHIN a run via a tarball artifact (preserves +x / dylib layout
+  # that upload-artifact would otherwise drop).
+  # ===========================================================================================
+  provision-mac-sidecars:
+    name: provision mac sidecars (build both arches, arm64 host)
+    runs-on: macos-latest # macOS 15 arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      # Key the cache on ONLY the pin JSONs' mac entries (+ sherpa models[], bundled on mac too),
+      # so a Windows-only pin bump does not needlessly invalidate the expensive mac build.
+      - name: Derive mac-sidecar cache key from pin mac entries
+        run: |
+          {
+            jq -S '{ffmpeg: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"], forbidden: .forbidden_configure_markers}}' scripts/ffmpeg-pin.json
+            jq -S '{whisper: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"]}}' scripts/whisper-pin.json
+            jq -S '{sherpa: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"], models: .models}}' scripts/sherpa-pin.json
+          } > mac-pins.lock
+          echo "mac-pins.lock:"; cat mac-pins.lock
+
+      - name: Cache provisioned mac vendor/ (+ from-source build caches)
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor
+            .cache/ffmpeg-build
+            .cache/whisper
+            .cache/sherpa
+          key: mac-sidecars-v1-${{ hashFiles('mac-pins.lock') }}
+
+      # ffmpeg: LGPL-clean, built from source per-arch (no LGPL mac prebuilt exists). ~20 min/arch.
+      # whisper.cpp: v1.9.1 has no mac release → built from source per-arch. sherpa: universal2
+      # prebuilt, staged for both. All three verify sha256 against the pins and fail on mismatch.
+      - name: Provision ffmpeg + whisper + sherpa for both arches (skips on cache hit)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euxo pipefail
+          scripts/build-ffmpeg-macos.sh          # both arches (arm64 native + x86_64 cross)
+          scripts/build-whisper-macos.sh         # both arches (--arch both is the default)
+          scripts/fetch-sherpa-macos.sh          # universal2 → staged into both target dirs
+
+      # Diarization models are OS-independent and bundled on mac too, but no mac script fetches
+      # them (fetch-sherpa-macos.sh stages only the binary; the model step lives in the
+      # Windows-only fetch-sherpa.ps1). Provision them here straight from the pin's models[] —
+      # scripts/sherpa-pin.json stays the single source of truth (values are READ, never
+      # duplicated), and each file is hard-verified against its pinned sha256. (See report: ideally
+      # a scripts/ mac model fetcher owns this; until then the release workflow does, hash-gated.)
+      - name: Provision diarization models (hash-verified against scripts/sherpa-pin.json)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          MODELS_DIR="vendor/models"; mkdir -p "$MODELS_DIR"
+          count="$(jq '.models | length' scripts/sherpa-pin.json)"
+          for i in $(seq 0 $((count - 1))); do
+            dest="$(jq -r ".models[$i].dest" scripts/sherpa-pin.json)"
+            onnx_sha="$(jq -r ".models[$i].onnx_sha256" scripts/sherpa-pin.json)"
+            url="$(jq -r ".models[$i].source_url" scripts/sherpa-pin.json)"
+            member="$(jq -r ".models[$i].archive_member // empty" scripts/sherpa-pin.json)"
+            arch_sha="$(jq -r ".models[$i].archive_sha256 // empty" scripts/sherpa-pin.json)"
+            out="$MODELS_DIR/$dest"
+            if [ -f "$out" ] && [ "$(shasum -a 256 "$out" | awk '{print $1}')" = "$onnx_sha" ]; then
+              echo "ok (cached) $dest"; continue
+            fi
+            tmp="$(mktemp)"; curl -fL --retry 5 --retry-all-errors -o "$tmp" "$url"
+            if [ -n "$member" ]; then
+              got="$(shasum -a 256 "$tmp" | awk '{print $1}')"
+              [ "$got" = "$arch_sha" ] || { echo "::error::$dest archive sha256 mismatch (want $arch_sha got $got)"; exit 1; }
+              ex="$(mktemp -d)"; tar -xjf "$tmp" -C "$ex"; cp "$ex/$member" "$out"; rm -rf "$ex"
+            else
+              cp "$tmp" "$out"
+            fi
+            got="$(shasum -a 256 "$out" | awk '{print $1}')"
+            [ "$got" = "$onnx_sha" ] || { echo "::error::$dest onnx sha256 mismatch (want $onnx_sha got $got)"; exit 1; }
+            echo "provisioned $dest ($got)"; rm -f "$tmp"
+          done
+          echo "models present:"; ls -la "$MODELS_DIR"
+
+      # Tar (not raw upload-artifact) to preserve exec bits + the bin/ + lib/ dylib layout the
+      # sidecars need; the bundle legs untar it back into place.
+      - name: Pack vendor/ for the bundle legs
+        run: tar -czf mac-vendor.tar.gz vendor
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-vendor-${{ github.ref_name }}
+          path: mac-vendor.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  # ===========================================================================================
+  # mac bundle legs — one per arch. Consume vendor/ from provision-mac-sidecars, then per arch:
+  # build the .app natively (arm64 on Apple silicon, x64 on real Intel HW) — Tauri auto-merges
+  # tauri.macos.conf.json, whose beforeBundleCommand stages the correct-arch sidecars — verify the
+  # .app (verify-mac-bundle.mjs), build the DMG headlessly (make-mac-dmg.mjs; Tauri's own DMG
+  # bundler needs Finder and can't run in CI), checksum, upload. All three scripts are the mac
+  # lane's contracts (scripts/stage-mac-sidecars.sh, apps/desktop/scripts/{verify-mac-bundle,
+  # make-mac-dmg}.mjs); this lane only invokes them, per ADR-012.
+  # ===========================================================================================
+  build-macos:
+    name: build + bundle (${{ matrix.os }} / ${{ matrix.arch }})
+    needs: provision-mac-sidecars
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest # macOS 15 arm64
+            triple: aarch64-apple-darwin
+            arch: arm64 # artifact-name label only; staging arch comes from TAURI_ENV_ARCH (beforeBundleCommand)
+          - os: macos-15-intel # macOS 15 x86_64 (real Intel HW; GitHub's last Intel image, thru Aug 2027)
+            triple: x86_64-apple-darwin
+            arch: x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Install frontend deps
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Fetch provisioned vendor/ (both arches, built on arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-vendor-${{ github.ref_name }}
+
+      - name: Unpack vendor/
+        run: |
+          tar -xzf mac-vendor.tar.gz
+          echo "vendor tree:"; find vendor -maxdepth 2 -type d | sort
+
+      # NOTE — no separate "stage sidecars" step. tauri.macos.conf.json sets
+      # beforeBundleCommand = `bash ../../scripts/stage-mac-sidecars.sh`, so Tauri runs the staging
+      # AUTOMATICALLY during the build below (the macOS analogue of stage-directml.ps1's Windows
+      # beforeBundleCommand), reading the arch from TAURI_ENV_ARCH that `--target` sets. It copies
+      # the correct-arch vendor tree into vendor/bundle-stage/macos/, sha256-verifies every file
+      # against the pins, and re-asserts +x — failing the build if a vendor dir is missing or a
+      # hash is wrong. (Verified against scripts/stage-mac-sidecars.sh + ADR-012.)
+
+      # --- macOS signing: mirrors the Windows SIGNING_METHOD gate; inert until the owner's Apple
+      # Developer decision (ADR-012). When APPLE_SIGNING is set, this imports the Developer ID cert
+      # into a temp keychain and Tauri codesigns during the build (env below). Unset → the bundle is
+      # UNSIGNED ad-hoc (current behaviour; Gatekeeper right-click-open, documented in the release
+      # body). Correct wiring, nothing to sign with yet. ---
+      - name: Import Apple Developer ID certificate
+        if: vars.APPLE_SIGNING == 'developer-id'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/anvil-signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      # Build the .app ONLY — deliberately NOT `--bundles app,dmg`. Tauri's DMG bundler
+      # (bundle_dmg.sh) drives Finder over AppleScript, which fails on a headless CI runner ("error
+      # running bundle_dmg.sh") AFTER the app is built; make-mac-dmg.mjs (hdiutil, no Finder)
+      # produces the DMG below instead. apps/desktop's `package:mac:*` npm scripts use app,dmg for
+      # INTERACTIVE (Finder-available) runs — CI takes the headless path. beforeBundleCommand stages
+      # the sidecars first (note above). No updater artifacts: createUpdaterArtifacts is off.
+      - name: Build the .app
+        working-directory: apps/desktop
+        env:
+          # Empty unless the owner sets them → Tauri produces an UNSIGNED ad-hoc bundle (current
+          # M6 state). Set vars.APPLE_SIGNING + these to codesign/notarize (see the gate above).
+          APPLE_SIGNING_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: npm run tauri build -- --target ${{ matrix.triple }} --bundles app
+
+      # verify-mac-bundle.mjs — the mac analogue of the win-x64 DirectML ship-gate: proves every
+      # sidecar is present at its locate() path, is +x, and spawns env-free (which is also the
+      # dylib/rpath LOAD check). `--target <triple>` locates the just-built .app under
+      # target/<triple>/release/bundle/macos. Exit 0 pass / 1 hard-fail / 2 not-found; the unsigned
+      # state is reported, not a failure. (CLI verified against scripts/verify-mac-bundle.mjs.)
+      - name: Verify the .app bundle (layout + exec bits + sidecars)
+        run: node apps/desktop/scripts/verify-mac-bundle.mjs --target ${{ matrix.triple }}
+
+      # Build the distributable DMG headlessly (hdiutil UDZO, no Finder). Writes
+      # target/<triple>/release/bundle/dmg/ANVIL_<version>_<arch>.dmg. (CLI verified against
+      # scripts/make-mac-dmg.mjs.)
+      - name: Build the DMG (headless — hdiutil, no Finder)
+        run: node apps/desktop/scripts/make-mac-dmg.mjs --target ${{ matrix.triple }}
+
+      # Locate the DMG make-mac-dmg.mjs just wrote. cargo's target dir is the workspace root
+      # (src-tauri is a workspace member, no target-dir override) — which the mac scripts also use
+      # (verify-mac-bundle.mjs / make-mac-dmg.mjs both resolve target/<triple>/release/bundle there);
+      # the src-tauri-local path is checked too for robustness, the same dual-candidate pattern as
+      # the win-x64 job's "Locate the bundle directory".
+      - name: Locate the DMG
+        id: bundle
+        run: |
+          set -euo pipefail
+          DMG=""
+          for root in \
+            "$GITHUB_WORKSPACE/target/${{ matrix.triple }}/release/bundle" \
+            "$GITHUB_WORKSPACE/apps/desktop/src-tauri/target/${{ matrix.triple }}/release/bundle"; do
+            [ -n "$DMG" ] || DMG="$(find "$root/dmg" -maxdepth 1 -name '*.dmg' 2>/dev/null | head -1 || true)"
+          done
+          [ -n "$DMG" ] || { echo "::error::no .dmg produced for ${{ matrix.triple }}"; exit 1; }
+          { echo "dmg=$DMG"; echo "dmgdir=$(dirname "$DMG")"; } >> "$GITHUB_OUTPUT"
+          echo "dmg=$DMG"
+
+      - name: Checksums (DMG)
+        working-directory: ${{ steps.bundle.outputs.dmgdir }}
+        run: shasum -a 256 *.dmg | tee CHECKSUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: anvil-macos-${{ matrix.arch }}-${{ github.ref_name }}
+          path: |
+            ${{ steps.bundle.outputs.dmg }}
+            ${{ steps.bundle.outputs.dmgdir }}/CHECKSUMS.txt
+          if-no-files-found: error
+
+  # ===========================================================================================
+  # release — gather every produced artifact, write ONE merged CHECKSUMS.txt, attach all to the
+  # GitHub Release.  `needs` lists all four build lanes, but the `if` proceeds as long as the
+  # THREE must-have lanes (win-x64 + both mac legs) succeeded — win-arm64's result is ignored, so
+  # a blocked/partial/red arm64 lane never blocks the release. `always()` lets the job evaluate
+  # even when arm64 didn't succeed; the tag guard keeps it release-only.
+  # ===========================================================================================
+  release:
+    name: publish GitHub Release
+    needs: [build-windows-x64, build-windows-arm64, build-macos]
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ always()
+        && needs.build-windows-x64.result == 'success'
+        && needs.build-macos.result == 'success'
+        && startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      # `pattern: anvil-*` → download every SHIPPABLE artifact from this run (win-x64, both mac
+      # legs, and win-arm64 if it ever produces one) while skipping the internal mac-vendor tarball.
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: anvil-*
+          path: dist
+
+      - name: Merge checksums across all artifacts
+        run: |
+          set -euo pipefail
+          cd dist
+          : > CHECKSUMS.txt
+          # One authoritative manifest over every shippable binary, regardless of which job/subdir
+          # produced it. Sorted by filename for a stable, reviewable manifest.
+          while IFS= read -r -d '' f; do
+            printf '%s  %s\n' "$(sha256sum "$f" | awk '{print $1}')" "$(basename "$f")" >> CHECKSUMS.txt
+          done < <(find . -type f \( -name '*.exe' -o -name '*.zip' -o -name '*.dmg' \) -print0 | sort -z)
+          echo "=== merged CHECKSUMS.txt ==="; cat CHECKSUMS.txt
+          test -s CHECKSUMS.txt # fail if somehow no artifacts were gathered
+
+      - name: Create/update the release with all artifacts + merged checksums
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: ${{ inputs.draft != false }}
+          # M6 exit criteria: pre-release until the fresh-machine install pass (Windows) and the
+          # right-click-open / Gatekeeper pass (macOS) are green for this tag — flip manually once
+          # verified.
+          prerelease: true
+          files: |
+            dist/**/*.exe
+            dist/**/*.zip
+            dist/**/*.dmg
+            dist/CHECKSUMS.txt
+          body: |
+            Automated multi-platform build for ${{ github.ref_name }}.
+
+            **Artifacts** (SHA-256 in `CHECKSUMS.txt`):
+            - Windows x64 — NSIS installer (`.exe`) + portable (`.zip`)
+            - macOS Apple-silicon (arm64) — `.dmg`
+            - macOS Intel (x64) — `.dmg`
+            - Windows arm64 — not in this build yet (bundling blocked on Windows-arm64 sidecars; see the release notes / STATE §M6).
+
+            **All binaries are UNSIGNED** until the owner wires code signing:
+            - **Windows** (both arches): SmartScreen will warn on first run. `SIGNING_METHOD`
+              (SignPath OSS vs Azure Trusted Signing) is not yet configured — see the workflow run.
+            - **macOS** (both arches): the app is ad-hoc signed only, so Gatekeeper blocks a
+              double-click. Open it the first time with **right-click → Open → Open**, or run
+              `xattr -dr com.apple.quarantine /Applications/ANVIL.app`. This goes away once an
+              Apple Developer ID + notarization is configured (`APPLE_SIGNING`).
+
+            Pre-release until this tag passes the M6 install/open verification on real hardware.

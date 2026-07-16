@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # The anti-porting-cliff gate (ADR-006): the portable core compiles AND unit-tests on
+  # Windows and BOTH macOS arches on every PR from M0 — a Windows-ism outside
+  # anvil-core::platform breaks this the day it lands, not at the M6 port. The Tauri app
+  # (anvil-desktop) is excluded here; it has its own job below.
+  # macos-latest = macOS 15 Apple-silicon (arm64); macos-15-intel = macOS 15 x86_64. The
+  # Intel leg was macos-13 until GitHub began deprecating that image (changelog 2025-09-19,
+  # fully unsupported Dec 2025); macos-15-intel is GitHub's replacement Intel label (the last
+  # x86_64 macOS image, available through Aug 2027).
+  rust-core:
+    name: rust-core (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (stable + clippy + rustfmt)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: rustfmt
+        run: cargo fmt --all --check
+      - name: clippy (deny warnings)
+        run: cargo clippy --workspace --exclude anvil-desktop --all-targets -- -D warnings
+      - name: build
+        run: cargo build --workspace --exclude anvil-desktop
+      - name: test
+        run: cargo test --workspace --exclude anvil-desktop
+
+  # Full Tauri app compile: frontend build + link the Rust shell. Windows is the M0-M5
+  # ship target; macOS-arm64 is compiled from M0 as an extra anti-cliff signal (the macOS
+  # *product* is M6). macos-15-intel (x86_64) is added for M6: the Tauri shell had ZERO
+  # mac-x64 compile coverage before this — the anti-cliff gap that let an Intel-only linkage
+  # break (e.g. the `ort` x86_64-apple-darwin load-dynamic split) reach the release matrix
+  # unseen. Compile only — no bundling/signing here.
+  desktop:
+    name: desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install frontend deps
+        working-directory: apps/desktop
+        run: npm ci
+      - name: Build frontend
+        working-directory: apps/desktop
+        run: npm run build
+      - name: Compile Tauri app
+        run: cargo build -p anvil-desktop
+
+  # TypeScript lint + typecheck (the "TS lint" standing gate).
+  frontend:
+    name: frontend (lint + typecheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - name: Install frontend deps
+        working-directory: apps/desktop
+        run: npm ci
+      - name: Lint
+        working-directory: apps/desktop
+        run: npm run lint
+      - name: Typecheck
+        working-directory: apps/desktop
+        run: npm run typecheck
+
+  # Eval harness canary (grows into the 5-clip mini-corpus gate in M1 lane C).
+  eval-smoke:
+    name: eval-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate example corpus manifest
+        run: python eval/run.py smoke
+
+  # Hygiene: MIT-compatible license allowlist + the airplane-mode dependency check.
+  hygiene:
+    name: hygiene (licenses + network confinement)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo-deny (licenses, bans, advisories, sources)
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+      - name: Network-dependency confinement (02 §Privacy, ADR-009)
+        run: bash .github/scripts/check-network-deps.sh

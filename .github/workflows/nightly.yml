@@ -1,0 +1,44 @@
+name: Nightly
+
+# Establishes the nightly wiring the plan calls for (06 §5). In M0 it runs the core
+# tests + eval canary. In M1 lane C this grows into: full-corpus eval, perf (RTF + RAM),
+# determinism double-render, and the 100-file soak, publishing trend HTML to an
+# `eval-reports` branch.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  core-tests:
+    name: core tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-latest = macOS 15 arm64; macos-15-intel = macOS 15 x86_64 (added M6 so the
+        # nightly core suite exercises both mac arches, matching ci.yml's rust-core gate).
+        os: [windows-latest, macos-latest, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --exclude anvil-desktop
+
+  eval-smoke:
+    name: eval canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python eval/run.py smoke
+    # TODO(M1 lane C): full corpus eval + perf + determinism + 100-file soak here.

@@ -1,0 +1,26 @@
+[package]
+name = "anvil-models"
+description = "ANVIL model downloads (ADR-009 sanctioned network module): hash-verified whisper.cpp ggml fetch into a per-user, mac-safe models dir — shared by the desktop Models screen and `anvil models pull`."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+# The download destination (`config_dir`) comes from the platform abstraction, and the
+# catalog (url + sha1, single source of truth) from the ASR crate — this module never
+# re-states either, it fetches against them.
+anvil-core.workspace = true
+anvil-asr.workspace = true
+# The ONE HTTP client in the workspace outside the desktop shell (see
+# `.github/scripts/check-network-deps.sh`): blocking + native-tls (Windows SChannel /
+# macOS Security.framework / OpenSSL on Linux — no bundled crypto to build), Range-resume.
+reqwest.workspace = true
+# whisper.cpp publishes sha1 (not sha256) for its ggml weights — verify against that.
+sha1.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

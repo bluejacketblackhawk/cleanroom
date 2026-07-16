@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Indeterminate progress bar (Master render): the engine emits no fraction, so this is
+   an honest "working" animation rather than a faked percentage. */
+@keyframes cr-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(400%);
+  }
+}
+.cr-indeterminate {
+  animation: cr-indeterminate 1.15s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-indeterminate {
+    animation: none;
+    transform: none;
+    width: 100%;
+    opacity: 0.75;
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 04 §Accessibility "reduced-motion honors OS": one blanket rule rather than hand-editing
+   every `transition-*`/`animate-*` utility class across the app. Anything that moves
+   (waveform playhead animation, panel/tab transitions, the onboarding dialog, hover
+   states) collapses to an effectively-instant change instead of being disabled outright —
+   state changes still need *some* visual signal, just not motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 04 §Accessibility "font scaling to 150% without clipping": Tailwind's default text
+   utilities are already relative (`rem`), but the app never overrides the root font size,
+   so a browser/OS "larger text" setting (which scales the root `em`/`rem` base) reaches
+   every element for free. This just makes sure nothing clamps the viewport/root against
+   that scaling. */
+html {
+  min-height: 100%;
+}

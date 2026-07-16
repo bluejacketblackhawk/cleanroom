@@ -1,0 +1,59 @@
+# cargo-deny — enforces the MIT-redistribution-compatible allowlist (RISKS-LEGAL §1).
+# CI hygiene job runs `cargo deny check`. Update the allowlist only with a matching
+# entry in docs/licenses.md.
+#
+# Policy: ANVIL is MIT. Every dependency's effective license must be permissive
+# (MIT/Apache/BSD/ISC/Zlib/Unicode/CC0/Unlicense) or weak file-level copyleft (MPL-2.0,
+# unmodified — symphonia). Enforcement is the allow list below: cargo-deny 0.18+ removed the
+# separate `deny` key (EmbarkStudios/cargo-deny#611), so **anything not on this list fails the
+# build** — which is exactly how strong copyleft (GPL/AGPL) and network copyleft (SSPL) are
+# rejected: they are deliberately absent. A crate that offers `MIT OR GPL-3.0` still passes
+# (satisfied by the MIT arm); a crate offered *only* under GPL/AGPL fails, as intended.
+# (ffmpeg is LGPL but is a sidecar *process*, never a linked crate, so it never appears
+# here — see anvil_media::sidecar::FFMPEG_PIN and handoff/07 §2. No Rust crate in the tree is
+# LGPL-only: the one LGPL mention, r-efi, is `MIT OR Apache-2.0 OR LGPL-2.1-or-later`.)
+
+[licenses]
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "MPL-2.0",          # symphonia et al — file-level copyleft, fine in an MIT app (see licenses.md)
+    "Unicode-3.0",      # unicode-ident, icu_* and friends
+    "CC0-1.0",          # notify, dunce (dunce is CC0 OR MIT-0)
+    "Unlicense",        # aho-corasick, byteorder, memchr, walkdir (all dual MIT OR Unlicense)
+    "0BSD",             # adler2
+    "CDLA-Permissive-2.0", # webpki-roots / webpki-root-certs: the Mozilla trusted-CA bundle,
+                           # a permissive *data* licence (no copyleft, no share-alike). Reaches
+                           # us only through ureq as a BUILD dependency of ort-sys; it is not a
+                           # code dependency of the shipped engine. Flagged and cleared here.
+]
+# Our own workspace crates are unpublished; don't flag them.
+private = { ignore = true }
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+
+[advisories]
+yanked = "deny"
+# Every `unmaintained` advisory in our tree is TRANSITIVE — gtk-rs GTK3 bindings and friends
+# pulled in by Tauri's Linux webview stack (RUSTSEC-2024-0411..0420 and similar), for which no
+# maintained upgrade exists. These are maintenance-status notices, not vulnerabilities. Scope the
+# unmaintained check to our own workspace crates so this unavoidable transitive noise doesn't
+# block the build, while any real `vulnerability` advisory (at any severity) still fails it —
+# that is the check that actually matters. The one genuine vuln we carried (lopdf's
+# deeply-nested-PDF stack overflow) was FIXED for real, not ignored: printpdf 0.10 -> 0.11 pulls
+# patched lopdf 0.44. Runtime never parsed untrusted PDFs anyway (we only produce them), so
+# exposure was already nil; the upgrade closes it at the source.
+unmaintained = "workspace"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

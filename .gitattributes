@@ -1,0 +1,31 @@
+# Normalize all text to LF in the repo (Windows + macOS CI parity, clean diffs).
+* text=auto eol=lf
+
+*.rs    text eol=lf
+*.toml  text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.jsonc text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.py    text eol=lf
+*.sh    text eol=lf
+*.svg   text eol=lf
+
+# Binary assets — never touch line endings.
+*.png   binary
+*.ico   binary
+*.icns  binary
+*.wav   binary
+*.flac  binary
+*.mp3   binary
+*.m4a   binary
+*.mp4   binary
+*.onnx  binary
+*.gguf  binary
+*.bin   binary

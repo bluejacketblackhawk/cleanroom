@@ -1,0 +1,21 @@
+[package]
+name = "anvil-project"
+description = "ANVIL project/preset/settings model (02 §Project & data model): .anvilproj, presets, EDL cut-lists, migrations."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# Compliance report PDF (04 §S6). `default-features = false` skips the "html" feature's
+# heavy layout chain (azul-layout, rust-fontconfig) — the report only needs the core
+# page/text/graphics API plus the built-in Base-14 fonts, none of which are feature-gated.
+printpdf = { version = "0.11", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"

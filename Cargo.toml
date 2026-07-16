@@ -1,0 +1,78 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/anvil-core",
+    "crates/anvil-dsp",
+    "crates/anvil-ai",
+    "crates/anvil-asr",
+    "crates/anvil-llm",
+    "crates/anvil-media",
+    "crates/anvil-audio",
+    "crates/anvil-batch",
+    "crates/anvil-cut",
+    "crates/anvil-multitrack",
+    "crates/anvil-project",
+    "crates/anvil-cli",
+    "crates/anvil-models",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Cleanroom contributors"]
+repository = "https://github.com/bluejacketblackhawk/cleanroom"
+readme = "README.md"
+
+# Shared infrastructure dependency versions. Crates opt in with `dep.workspace = true`.
+# Domain deps (symphonia, cpal, rubato, ebur128, ort, whisper-rs, llama.cpp, lofty, …)
+# are added to their owning crate when that lane starts — kept out of the first build
+# so the scaffold compiles fast and reliably.
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+sha2 = "0.10"
+# whisper.cpp publishes sha1 (not sha256) for its ggml weights — the model downloader
+# (`anvil-models`) and the desktop shell verify against those pins.
+sha1 = "0.10"
+# The ONE HTTP client in the workspace, and only in the sanctioned `models`/updater network
+# users (`anvil-models` + the desktop shell) — every engine crate stays HTTP-free by the
+# `check-network-deps.sh` gate. blocking + native-tls (OS-native crypto, nothing to build).
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "native-tls"] }
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+rayon = "1"
+num_cpus = "1"
+dirs = "5"
+
+# Internal crates (referenced by path so the workspace is self-contained).
+anvil-core = { path = "crates/anvil-core" }
+anvil-dsp = { path = "crates/anvil-dsp" }
+anvil-ai = { path = "crates/anvil-ai" }
+anvil-asr = { path = "crates/anvil-asr" }
+anvil-llm = { path = "crates/anvil-llm" }
+anvil-media = { path = "crates/anvil-media" }
+anvil-audio = { path = "crates/anvil-audio" }
+anvil-batch = { path = "crates/anvil-batch" }
+anvil-cut = { path = "crates/anvil-cut" }
+anvil-multitrack = { path = "crates/anvil-multitrack" }
+anvil-project = { path = "crates/anvil-project" }
+anvil-models = { path = "crates/anvil-models" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# Optimize dependencies even in dev builds so audio processing isn't unusably slow
+# while iterating; our own crates stay at opt-level 0 for debuggability.
+[profile.dev.package."*"]
+opt-level = 2

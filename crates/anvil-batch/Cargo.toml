@@ -1,0 +1,32 @@
+[package]
+name = "anvil-batch"
+description = "ANVIL batch + watch-folder engine (04 §S4/S5): a queue that masters files with per-file isolation, N-1-core concurrency, and progress events, plus watch rules."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+anvil-dsp.workspace = true
+anvil-media.workspace = true
+anvil-project.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+crossbeam-channel.workspace = true
+rayon.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true
+num_cpus.workspace = true
+# Watch-folder engine (04 §S5): MIT/Apache-2.0 dual-licensed, portable (ReadDirectoryChangesW
+# on Windows / FSEvents on macOS) file-system event watcher.
+notify = "6"
+# Interim WAV output at the encoder seam (`queue::render_item`) until `anvil_media::encode`
+# lands (M2 lane A) and batch/watch outputs gain the full format matrix. MIT-licensed.
+hound = "3"
+
+[dev-dependencies]
+tempfile = "3"

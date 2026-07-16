@@ -1,0 +1,18 @@
+[package]
+name = "anvil-audio"
+description = "ANVIL playback + waveform: cpal output engine, transport, and the min/max peaks pyramid (M0 lane C)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+anvil-media.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# Domain deps (cpal, …) are added in this crate's own Cargo.toml by lane C.
+# cpal abstracts the OS audio host (WASAPI on Windows, CoreAudio on macOS) — no
+# platform `#[cfg]` needed here (ADR-006, ADR-010).
+cpal = "0.15"

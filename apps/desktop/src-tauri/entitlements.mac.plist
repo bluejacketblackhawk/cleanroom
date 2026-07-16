@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS entitlements for ANVIL (referenced by tauri.macos.conf.json `bundle.macOS.entitlements`).
+
+  Two entitlements, both load-bearing on the shipped Mac build:
+
+  * com.apple.security.device.audio-input — the Recording Guard screen (S10, `guard.rs`) opens a
+    live `cpal` INPUT stream (mic level / noise-floor / clap-test RT60). Under the hardened runtime
+    a mic capture without this entitlement is denied. Even on today's UNSIGNED/ad-hoc build the
+    entitlement is harmless, and pairs with `NSMicrophoneUsageDescription` (Info.macos.plist) which
+    is what actually makes macOS show a TCC consent prompt with a real reason instead of silently
+    failing the capture.
+
+  * com.apple.security.cs.disable-library-validation — on Intel (x86_64) macOS `anvil-ai`'s `ort`
+    is `load-dynamic` (crates/anvil-ai/Cargo.toml): the app dlopen's the BUNDLED Microsoft
+    onnxruntime dylib (`../Resources/sherpa/lib/libonnxruntime.1.17.1.dylib`, set via ORT_DYLIB_PATH
+    at launch — see lib.rs). That dylib is signed with a DIFFERENT identity (ad-hoc / linker-signed
+    upstream) than the app, so hardened-runtime library validation would refuse to load it. This
+    entitlement is the standard opt-out for apps that load third-party dylibs; without it the in-
+    process denoiser can fail to initialise on Intel Macs once the app is signed. (arm64 links ort
+    statically, so it does not strictly need this — but one shared entitlements file keeps the two
+    per-arch bundles identical, which is the ADR-012 6-artifact discipline.)
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+</dict>
+</plist>

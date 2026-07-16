@@ -1,0 +1,33 @@
+[package]
+name = "anvil-dsp"
+description = "ANVIL DSP: HPF, adaptive leveler, true-peak limiter, loudness, de-esser, resample. Deterministic, block-based (ADR-003)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+anvil-media.workspace = true
+anvil-project.workspace = true
+anvil-ai.workspace = true
+# Diarization types (Diarization / Speaker / SpeakerSegment) for per-speaker leveling and Voice
+# Memory (03 §4.7, §4.8). A plain path dep: `anvil-asr` links nothing (whisper.cpp and
+# sherpa-onnx run as sidecar processes), so this cannot change how anything else builds.
+anvil-asr.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+sha2.workspace = true
+# Pure-Rust (MIT) libebur128 port: BS.1770-4 integrated/short-term/momentary loudness,
+# LRA, and 4x-oversampled true peak. Same meter the CLI and eval harness cross-check
+# against ffmpeg.
+ebur128 = "0.1"
+# Real-input FFT (MIT/Apache-2.0) for the analysis spectral features (rolloff, flatness,
+# sibilance, hum). Wraps rustfft; already in the dependency tree via rubato.
+realfft = "3"
+
+[dev-dependencies]
+hound = "3"

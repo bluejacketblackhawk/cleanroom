@@ -1,0 +1,124 @@
+[package]
+name = "anvil-ai"
+description = "ANVIL AI model runtime (ADR-004): DeepFilterNet3, ort sessions (VAD/enhance/diarize), device probe with CPU fallback."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+build = "build.rs"
+
+[dependencies]
+anvil-core.workspace = true
+anvil-media.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# RNNoise reimplemented in pure Rust (MIT). Weights are compiled into the crate, so the
+# Fast tier is fully offline (03 §4.4 "Fast: RNNoise"). No network, no model file.
+nnnoiseless = { version = "0.5", default-features = false }
+# STFT/ISTFT for the DeepFilterNet3 analysis/synthesis pair (960/480, vorbis window).
+realfft = "3"
+num-complex = "0.4"
+# The DFN3 model ships as a gzipped tar of three ONNX graphs + config.ini; we unpack it
+# in memory at session build (never touching disk, never touching the network).
+flate2 = "1"
+tar = "0.4"
+
+# ONNX Runtime bindings. Drives DeepFilterNet3 (Standard) and the Studio enhancer.
+# We always register CPU as the fallback and run a first-inference canary so a bad GPU
+# driver downgrades instead of crashing (07 risk: "GPU driver zoo").
+#
+# `ort` is split into four DISJOINT target tables rather than one `[dependencies]` entry.
+# The reason is feature-unification: `download-binaries` (fetch a prebuilt onnxruntime,
+# hash-pinned per target in ort-sys/dist.txt) and `load-dynamic` (no link-time
+# onnxruntime; resolve a dylib at run time) are mutually exclusive, and the right choice
+# differs by OS/arch. Because the four `cfg(...)` predicates below never both match a
+# single target, Cargo activates exactly one block per build and can never merge an
+# incompatible pair. Each block pins the same `=2.0.0-rc.12` and the same `api-24` ABI.
+
+# Windows: prebuilt binary + the DirectML EP (NVIDIA/AMD/Intel GPUs). The EP registration
+# lives in `probe_device` (lib.rs) and `dfn3::session`, both `cfg(windows)`-gated.
+[target.'cfg(windows)'.dependencies.ort]
+version = "=2.0.0-rc.12"
+default-features = false
+features = [
+    "std",
+    "ndarray",
+    "tracing",
+    "download-binaries",
+    "tls-native",
+    "copy-dylibs",
+    "api-24",
+    "directml",
+]
+
+# macOS arm64 (Apple Silicon): the prebuilt binary (dist.txt row `aarch64-apple-darwin`)
+# is a STATIC onnxruntime archive with the CoreML EP already compiled in. The `coreml`
+# feature only gates ort's Rust-side EP registration call (an empty passthrough to
+# `ort-sys/coreml`); enabling it keeps the CoreML path AVAILABLE to build. No probe/session
+# wiring uses it yet — mac still falls through to CPU today; that stays until a later
+# milestone.
+[target.'cfg(all(target_os = "macos", target_arch = "aarch64"))'.dependencies.ort]
+version = "=2.0.0-rc.12"
+default-features = false
+features = [
+    "std",
+    "ndarray",
+    "tracing",
+    "download-binaries",
+    "tls-native",
+    "copy-dylibs",
+    "api-24",
+    "coreml",
+]
+
+# macOS x86_64 (Intel): ort's dist.txt has ZERO `x86_64-apple-darwin` rows, so
+# `download-binaries` fails outright ("ort does not provide prebuilt binaries for the
+# target x86_64-apple-darwin"). Use `load-dynamic` instead: it implies
+# `ort-sys/disable-linking`, so there is NO link-time onnxruntime — `cargo check`/`build`
+# succeed with no dylib present, and the library is resolved at RUN time via
+# `ORT_DYLIB_PATH`. The desktop app ships that dylib: Microsoft's onnxruntime universal2
+# 1.17.1 (covers x86_64), the same archive the sherpa sidecar lane already bundles; the
+# app sets ORT_DYLIB_PATH at launch. That packaging/wiring lands with the desktop
+# packaging milestone (build-availability only here). `coreml` stays for parity so the EP
+# can register against the bundled dylib. Without `download-binaries` there is no ureq
+# downloader, so `tls-native`/`copy-dylibs` (which only serve it) are dropped.
+[target.'cfg(all(target_os = "macos", target_arch = "x86_64"))'.dependencies.ort]
+version = "=2.0.0-rc.12"
+default-features = false
+features = [
+    "std",
+    "ndarray",
+    "tracing",
+    "load-dynamic",
+    "api-24",
+    "coreml",
+]
+
+# Everything else (Linux / other Unix — Linux CI runs cargo-deny + hygiene, and Linux dev
+# boxes may `cargo check`): keep the pre-split behaviour. dist.txt covers
+# x86_64/aarch64-unknown-linux-gnu, so `download-binaries` resolves as before. CPU only —
+# there is no Linux GPU EP in the source today.
+[target.'cfg(not(any(windows, target_os = "macos")))'.dependencies.ort]
+version = "=2.0.0-rc.12"
+default-features = false
+features = [
+    "std",
+    "ndarray",
+    "tracing",
+    "download-binaries",
+    "tls-native",
+    "copy-dylibs",
+    "api-24",
+]
+
+[dev-dependencies]
+# WAV I/O for the dev-only `denoise_wav` example (the DNSMOS harness's front end).
+hound = "3"
+
+[build-dependencies]
+# Build-time only: provisions the DeepFilterNet3 ONNX tarball once, hash-verified, and
+# caches it in OUT_DIR so the model is baked into the binary. Nothing here ships.
+sha2.workspace = true
+ureq = "3"

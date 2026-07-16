@@ -1,0 +1,28 @@
+NVIDIA NeMo TitaNet-Small - speaker-embedding model
+====================================================
+
+Work        : TitaNet-Small speaker verification / embedding model (English)
+Author      : NVIDIA Corporation (NVIDIA NeMo)
+License     : CC-BY-4.0 (Creative Commons Attribution 4.0 International)
+Source      : https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/titanet_small
+ONNX build  : https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx
+File        : nemo_en_titanet_small.onnx
+
+ANVIL bundles this model unmodified as the default diarization speaker-embedding
+extractor. The full CC-BY-4.0 legal text is in cc-by-4.0-legalcode.txt next to
+this file.
+
+REQUIRED ATTRIBUTION (CC-BY-4.0 §3.a):
+  "NVIDIA NeMo TitaNet-Small, © NVIDIA Corporation, licensed under CC-BY-4.0
+   (https://creativecommons.org/licenses/by/4.0/). Exported to ONNX by the
+   sherpa-onnx project (k2-fsa)."
+
+Indication of changes (CC-BY-4.0 §3.a.1.B): the original NeMo checkpoint was
+converted to the ONNX runtime format by the sherpa-onnx project. ANVIL does not
+otherwise modify the weights.
+
+Why this model is the default (not the Apache-2.0 WeSpeaker CAM++): CAM++ emits
+degenerate embeddings under the prebuilt Windows onnxruntime combination ANVIL
+ships, collapsing every recording to a single speaker. TitaNet-Small runs
+correctly. See crates/anvil-asr/src/model.rs for the full rationale. This
+attribution obligation is the price of a diarizer that actually works on Windows.

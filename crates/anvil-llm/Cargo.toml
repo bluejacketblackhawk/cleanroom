@@ -1,0 +1,34 @@
+[package]
+name = "anvil-llm"
+description = "ANVIL local LLM (ADR-004): llama.cpp sidecar + Qwen2.5 (Apache-2.0 only) for shownotes/chapters/titles — private, optional pack, with a no-LLM topic-drift fallback."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+anvil-core.workspace = true
+# The ASR transcript is this lane's input contract (`anvil_asr::Transcript`). anvil-asr is a
+# thin crate (no linked C++), so depending on it costs nothing and keeps one transcript type
+# in the workspace instead of two.
+anvil-asr.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# Model-pack integrity (ADR-004 §Model packs: "hash-verified"). The gguf is streamed through
+# sha256 by `model::verify_model`, mirroring anvil-media's pinned-ffmpeg check.
+sha2.workspace = true
+# llama.cpp is NOT linked (no `llama-cpp-2`, no cmake/bindgen/MSVC step): it is run as an
+# external `llama-cli` child process — see the `sidecar` module and the crate docs for why.
+
+[dev-dependencies]
+serde_json.workspace = true
+
+# Exercises the real process-spawn path (Command → prompt file → stdout → JSON) against a
+# stub llama-cli, which is this very test binary re-invoked with ANVIL_LLM_STUB set. Needs a
+# plain `fn main`, hence `harness = false`.
+[[test]]
+name = "sidecar_spawn"
+harness = false

@@ -1,0 +1,71 @@
+[package]
+name = "anvil-desktop"
+description = "ANVIL desktop app (Tauri 2 shell): Tauri commands, the job bridge, and the React UI host."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[lib]
+# `_lib` suffix keeps the lib name distinct from the bin on Windows
+# (see rust-lang/cargo#8519).
+name = "anvil_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+# M5 Windows ship: updater wired against GitHub Releases (endpoint/pubkey are owner TODOs —
+# see `tauri.conf.json`'s `plugins.updater` and 07 §signing) and a native "save diagnostics
+# zip as…" dialog for the Settings screen's diagnostics export.
+tauri-plugin-updater = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+# M5 diagnostics export (`diagnostics.rs`): rolling daily log files under the platform
+# config dir, so there's something real to zip up for a GitHub issue, and a pure-Rust
+# (no C toolchain) zip writer — deflate only, the rest of the crate's default codecs
+# (bzip2/lzma/zstd/aes) are unneeded weight for "a few small text files".
+tracing-appender = "0.2"
+zip = { version = "8", default-features = false, features = ["deflate"] }
+anvil-core.workspace = true
+anvil-audio.workspace = true
+anvil-media.workspace = true
+anvil-dsp.workspace = true
+anvil-project.workspace = true
+anvil-batch.workspace = true
+# M3 Transcript tab: real whisper.cpp transcription (`transcript::transcribe`) and the
+# silence/filler cut engine (`transcript::plan_cuts`/`apply_cuts`).
+anvil-asr.workspace = true
+anvil-cut.workspace = true
+# M4 shownotes: local LLM (Qwen2.5) episode summary/chapters/keywords from the transcript
+# (`shownotes::generate_shownotes`), degrading to `anvil_llm`'s no-model extractive fallback.
+anvil-llm.workspace = true
+# S3 Multitrack: GCC-PHAT alignment + drift repair, crossgate bleed control, lookahead
+# ducking, and the mixdown (`multitrack::multitrack_align` / `multitrack_mix`).
+anvil-multitrack.workspace = true
+# S7 Models screen: the whisper download is delegated to the sanctioned `anvil-models` network
+# crate (shared byte-for-byte with `anvil models pull`) — `models.rs` is just the Tauri wrapper.
+anvil-models.workspace = true
+uuid.workspace = true
+# WAV writer for `export_outputs` + the seam round-trip test.
+hound = "3"
+# The shownotes-LLM download (`models.rs::fetch_and_verify_llm`) still fetches multi-file Qwen
+# packs here: a blocking native-tls HTTPS client (Windows SChannel / macOS Security.framework /
+# OpenSSL) with Range-header resume. The whisper download + its sha1 verify moved to the shared
+# `anvil-models` crate; the desktop no longer hashes anything itself.
+reqwest.workspace = true
+# S10 Recording Guard's live input meter/clap test (`guard.rs`): a direct `cpal` **input**
+# capture in this crate — `anvil-audio` only does output today. Same pin as that crate.
+cpal = "0.15"
+
+[dev-dependencies]
+tempfile = "3"

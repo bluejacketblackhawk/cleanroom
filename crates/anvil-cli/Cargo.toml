@@ -1,0 +1,32 @@
+[package]
+name = "anvil-cli"
+description = "ANVIL headless CLI (ADR-007): analyze/master/transcribe/batch/models — JSON-first, stable exit codes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "cleanroom"
+path = "src/main.rs"
+
+[dependencies]
+anvil-core.workspace = true
+anvil-project.workspace = true
+anvil-media.workspace = true
+anvil-dsp.workspace = true
+anvil-asr.workspace = true
+anvil-batch.workspace = true
+# `models list`/`pull`: the whisper catalog + installed-state come from `anvil-asr`, the Qwen
+# shownotes catalog from `anvil-llm`, and the real hash-verified download from the sanctioned
+# `anvil-models` network crate (shared byte-for-byte with the desktop Models screen).
+anvil-llm.workspace = true
+anvil-models.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+# WAV writer for `anvil master` output (16-bit PCM) and the batch fixtures in tests.
+hound = "3"
+
+[dev-dependencies]
+tempfile = "3"

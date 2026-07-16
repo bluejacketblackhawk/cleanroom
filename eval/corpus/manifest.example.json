@@ -1,0 +1,34 @@
+{
+  "$comment": "Corpus manifest format (handoff/06-QUALITY-EVAL.md §1). The real corpus is assembled in M0.D and kept out of the repo when clips are private; the redistributable/synthetic subset is published separately as 'anvil-bench' for the honest launch benchmark. This example documents the schema and seeds two synthetic, redistributable clips. Classes are the 12 failure classes; each needs >=3 clips before the M1 blind gate.",
+  "version": 1,
+  "clips": [
+    {
+      "id": "syn-cleanctrl-001",
+      "class": "clean-studio",
+      "path": "clean-studio/syn-cleanctrl-001.wav",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "duration_s": 45.0,
+      "source": "synthetic: LibriSpeech test-clean utterance, no degradation (must-not-degrade control)",
+      "ground_truth": {
+        "reference_wav": "clean-studio/syn-cleanctrl-001.wav",
+        "transcript": "clean-studio/syn-cleanctrl-001.txt"
+      },
+      "notes": "Control clip: all processing deltas must be >= -0.05 DNSMOS."
+    },
+    {
+      "id": "syn-broadband-001",
+      "class": "constant-broadband-noise",
+      "path": "constant-broadband-noise/syn-broadband-001.wav",
+      "license": "CC0-1.0",
+      "redistributable": true,
+      "duration_s": 45.0,
+      "source": "synthetic: clean speech + MUSAN fan noise mixed at +10 dB SNR (paired reference retained)",
+      "ground_truth": {
+        "reference_wav": "constant-broadband-noise/syn-broadband-001.clean.wav",
+        "snr_db": 10.0
+      },
+      "notes": "Paired synthetic degradation enables intrusive metrics (PESQ/STOI)."
+    }
+  ]
+}

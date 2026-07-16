@@ -1,0 +1,70 @@
+# --- Rust ---
+/target
+**/target
+# NOTE: Cargo.lock IS committed (workspace ships binaries; reproducible builds
+# support determinism ADR-003). Do not ignore it.
+
+# --- Node / frontend ---
+node_modules/
+apps/desktop/dist/
+apps/desktop/dist-ssr/
+*.local
+.vite/
+
+# --- Tauri generated ---
+apps/desktop/src-tauri/gen/
+
+# --- Python (eval harness, dev-only) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# --- Models, sidecars & large binaries (shipped via GH Releases, hash-manifested) ---
+/models/
+/vendor/
+*.onnx
+*.gguf
+ffmpeg.exe
+ffmpeg
+ffprobe.exe
+ffprobe
+
+# --- Eval outputs & private corpus (redistributable subset lives in anvil-bench) ---
+eval/reports/*
+!eval/reports/.gitkeep
+eval/corpus/*
+!eval/corpus/.gitkeep
+!eval/corpus/manifest.example.json
+
+# --- Local caches & runtime ---
+/.anvil-cache/
+*.anvilpeaks
+# scripts/fetch-ffmpeg.ps1 caches the pinned upstream archive here before verifying it.
+/.cache/
+
+# --- Secrets / env ---
+.env
+.env.*
+!.env.example
+
+# --- Logs ---
+*.log
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE ---
+/.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Build-time vendored DFN3 model (build.rs resolution #2 — fetched+hash-verified, never committed)
+crates/anvil-ai/models/
