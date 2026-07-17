@@ -1,24 +1,28 @@
-name: Release (6-artifact matrix)
+name: Release (4-artifact matrix)
 
-# M6 §S6 — tag-triggered build matrix producing the full owner-directed artifact set:
-#   * win-x64    NSIS installer + portable zip        (build-windows-x64   — shipping today)
-#   * win-arm64  NSIS installer + portable zip        (build-windows-arm64 — PARTIAL, see below)
+# Tag-triggered build matrix producing the full artifact set:
+#   * win-x64    NSIS installer + portable zip        (build-windows-x64)
 #   * mac-arm64  .app / DMG                            (build-macos [aarch64-apple-darwin])
 #   * mac-x64    .app / DMG                            (build-macos [x86_64-apple-darwin])
 # Every build job compiles, bundles, checksums, and uploads its artifact; the final `release`
 # job downloads them all, writes a merged CHECKSUMS.txt, and attaches everything to a GitHub
-# Release. Nothing here publishes on a normal push — only the final `gh release` step runs, and
-# only once the owner has actually pushed a tag.
+# Release. Nothing publishes on a normal push — the `release` job is tag-guarded, so a manual
+# workflow_dispatch run builds and verifies without ever publishing.
 #
-# HONESTY-FIRST — win-arm64 is a PARTIAL lane and says so.  The arm64 Windows shell *compiles*
-# (that step is live and is the anti-cliff signal), but it cannot yet BUNDLE: it needs
-# windows-aarch64 sidecar pins + provisioning that do not exist yet (whisper.cpp and sherpa-onnx
-# publish no Windows-arm64 binaries at the pinned versions, and the pin JSONs / fetch scripts —
-# owned by another lane — have no windows-aarch64 entries). Every step that depends on those is a
-# real, correctly-wired step gated behind `if: false # BLOCKED:` with the exact blocker, rather
-# than a lie that would go red or ship an empty installer. The release tolerates win-arm64 being
-# absent (see the `release` job's `if:`). See the task report / STATE §M6 for the upstream truth
-# table and the pin entries this lane needs.
+# WIN-ARM64 WAS DROPPED (2026-07-16) — decided, not deferred. It cannot be built from pinned
+# upstreams: whisper.cpp v1.9.1 and sherpa-onnx v1.12.14 publish NO Windows-arm64 binaries at all
+# (verified 2026-07-15). Shipping it means building BOTH from source — sherpa drags onnxruntime
+# with it — and even then diarization stays unavailable until that work lands. Meanwhile Windows 11
+# on ARM runs the x64 build under emulation, so no user is locked out, and the CPU path is
+# first-class here regardless. The lane's only live step was a compile-only "anti-cliff" signal
+# guarding a build that would never be published — cost without a consumer.
+#
+# If arm64 is ever wanted, this is the shape of it: ffmpeg is the easy part (the BtbN winarm64-lgpl
+# asset + sha256 were verified and recorded in this file's git history). It additionally needs a
+# `vendor/bundle-stage/windows/` staging dir — Tauri configs are per-PLATFORM, not per-arch, so
+# `tauri.windows.conf.json` cannot express two arches; mac already solves this with
+# `vendor/bundle-stage/macos/` + stage-mac-sidecars.sh — plus an arch-aware fetch-ffmpeg.ps1 and
+# package-portable.mjs, and a from-source whisper.cpp build script.
 #
 # SIGNING is gated on owner decisions and is inert until then:
 #   * Windows (05 §M5.B, 07 §3): `SIGNING_METHOD` repo/env var picks SignPath OSS vs Azure
@@ -32,12 +36,16 @@ name: Release (6-artifact matrix)
 # tauri.conf.json (no real signing keypair yet — `plugins.updater.pubkey` is still a TODO), so
 # `--bundles` deliberately omits `updater` and there is no `.app.tar.gz`/`latest.json` to attach.
 
-# TRIGGER — manual only, deliberately. The tag trigger is OFF because this matrix cannot bundle
-# yet: every `build + bundle` lane dies in tauri-build on a missing-glob error because nothing
-# provisions `vendor/models/*` or `vendor/ort/windows-x86_64/*` (the mac sidecar job covers
-# ffmpeg/whisper/sherpa only, and it passes). So every tag push failed the whole matrix and told
-# you nothing true. Shipping artifacts are built locally and attached by hand until that
-# provisioning is wired up; restore the `push: tags: ["v*"]` trigger once it is.
+# TRIGGER — manual only until a real run proves the staging fix green; then `push: tags: ["v*"]`
+# goes back on and tagging publishes a release again.
+#
+# Why it was off: every lane died in tauri-build on a missing-glob error. Not because nothing
+# provisioned the sidecars (the fetch scripts and the mac provisioning job do), but because the
+# staging scripts — stage-directml.ps1 and stage-mac-sidecars.sh — only ran from Tauri's
+# `beforeBundleCommand`, i.e. at BUNDLE time, while tauri-build validates every `bundle.resources`
+# glob at COMPILE time. The build therefore died before the hook that would have satisfied it ever
+# ran. It only ever worked on a machine whose vendor/ tree was already populated by a past build.
+# Both platforms now stage explicitly before compiling (see each lane).
 on:
   workflow_dispatch:
     inputs:
@@ -251,109 +259,6 @@ jobs:
             ${{ steps.bundle.outputs.dir }}/portable/*.zip
             ${{ steps.bundle.outputs.dir }}/CHECKSUMS.txt
           if-no-files-found: error
-
-  # ===========================================================================================
-  # win-arm64 — PARTIAL. The shell compiles (live, anti-cliff); bundling is BLOCKED on
-  # windows-aarch64 sidecars + pins owned by another lane. See the header. This job is allowed to
-  # go green with no artifact (compile-only) OR to be absent/red without failing the release.
-  # ===========================================================================================
-  build-windows-arm64:
-    name: build + bundle (windows-11-arm / arm64)
-    # windows-11-arm = GitHub's public Windows 11 Arm64 runner (GA 2025; alias windows-11-arm64).
-    runs-on: windows-11-arm
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: apps/desktop/package-lock.json
-
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-pc-windows-msvc
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: ". -> target"
-
-      - name: Install frontend deps
-        working-directory: apps/desktop
-        run: npm ci
-
-      # LIVE anti-cliff compile. Proves the Tauri shell + all 12 engine crates LINK for
-      # aarch64-pc-windows-msvc. This is build-AVAILABLE today (verified 2026-07-15): ort
-      # v2.0.0-rc.12's ort-sys/build/download/dist.txt HAS an `aarch64-pc-windows-msvc` row
-      # (variant `none`, onnxruntime ms@1.24.2, sha256 8f3a87f1ab1a22d690534b1c67225ef6aadfb51bf960c5d87f250451e46aec8f),
-      # so the existing `cfg(windows)` `download-binaries` block in crates/anvil-ai/Cargo.toml
-      # resolves for arm64 with NO crate change. The single residual unknown — whether that arm64
-      # onnxruntime build carries the DirectML EP so the `directml` feature registers/links — is
-      # exactly what THIS compile surfaces. If it fails here, the fix is a crates/ decision (a
-      # `cfg(all(windows, target_arch="aarch64"))` block dropping `directml` or using load-dynamic,
-      # mirroring the Intel-mac split) — REPORT to the owning lane, do not hack it in from here.
-      - name: Compile Tauri app (aarch64-pc-windows-msvc)
-        run: cargo build -p anvil-desktop --target aarch64-pc-windows-msvc
-
-      # ---------------------------------------------------------------------------------------
-      # Everything below is the INTENDED bundle pipeline, wired but BLOCKED. Each `if: false`
-      # carries the precise blocker. Flip to live per-item as the pin/script gaps close.
-      # ---------------------------------------------------------------------------------------
-
-      - name: Provision ffmpeg sidecar (win-arm64)
-        # BLOCKED: needs a `windows-aarch64` entry in scripts/ffmpeg-pin.json AND fetch-ffmpeg.ps1
-        # made arch-aware (it hardcodes `.targets.'windows-x86_64'`) — both owned by another lane.
-        # The UPSTREAM ASSET IS REAL AND VERIFIED (2026-07-15), ready to pin:
-        #   url:    https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-14-13-19/ffmpeg-n8.1.2-22-g94138f6973-winarm64-lgpl-8.1.zip
-        #   sha256: 7dbdf3a633d43cd71895b527cbafcdb4a2a5edf347cc5b6a1c3f14472d6dfc99  (94317290 bytes)
-        #   member: ffmpeg-n8.1.2-22-g94138f6973-winarm64-lgpl-8.1/bin/ffmpeg.exe  (LGPL-3.0, --enable-version3)
-        if: false # BLOCKED: no windows-aarch64 ffmpeg pin + non-arch-aware fetch-ffmpeg.ps1 (asset verified — see above)
-        shell: pwsh
-        run: |
-          ./scripts/fetch-ffmpeg.ps1   # future: an -Arch arm64 parameter reading .targets.'windows-aarch64'
-
-      - name: Provision whisper.cpp sidecar (win-arm64, from source)
-        # BLOCKED: whisper.cpp v1.9.1 publishes NO Windows-arm64 asset (verified 2026-07-15: the
-        # release ships only whisper-bin-Win32.zip / whisper-bin-x64.zip + CUDA/BLAS x64 + an
-        # Apple xcframework + ubuntu-arm64). This lane must BUILD whisper-cli from the v1.9.1 tag
-        # on the arm runner with cmake, mirroring scripts/build-whisper-macos.sh's flags minus the
-        # mac bits (GGML_NATIVE=OFF, BUILD_SHARED_LIBS=ON, no Metal). That build script does not
-        # exist (scripts/ is another lane's) and there is no windows-aarch64 whisper pin.
-        if: false # BLOCKED: no Win-arm64 whisper prebuilt; needs a from-source build script + pin (another lane)
-        shell: pwsh
-        run: |
-          Write-Host "TODO cmake-build whisper.cpp v1.9.1 for aarch64-pc-windows-msvc, stage into vendor/whisper/windows-aarch64"
-
-      - name: Provision sherpa-onnx sidecar (win-arm64)
-        # BLOCKED: sherpa-onnx v1.12.14 publishes NO Windows-arm64 asset (verified 2026-07-15: the
-        # release ships win-x64 {shared,cuda,jni,static} + win-x86 static only). A Windows-arm64
-        # diarization sidecar would require building sherpa-onnx from source (large C++/onnxruntime
-        # build) on the arm runner; no script and no windows-aarch64 sherpa pin exist. Diarization
-        # would be unavailable on win-arm64 until this lands.
-        if: false # BLOCKED: no Win-arm64 sherpa prebuilt; from-source build unscoped (another lane)
-        shell: pwsh
-        run: |
-          Write-Host "TODO build/stage sherpa-onnx diarization for aarch64-pc-windows-msvc"
-
-      - name: Regenerate demo file + build NSIS installer + portable zip (win-arm64)
-        # BLOCKED transitively: the NSIS bundle's tauri.conf.json bundle.resources expect the three
-        # sidecars above staged under vendor/*/windows-aarch64 (a tauri.windows-arm overlay does not
-        # exist), and package-portable.mjs hardcodes vendor/*/windows-x86_64 + a `-portable-x64.zip`
-        # name (apps/ — another lane). Also DirectML.dll: if the `directml` feature stays on for
-        # arm64, stage-directml.ps1 (hardcoded windows-x86_64) needs the arm64 DirectML.dll.
-        if: false # BLOCKED: sidecars above unavailable; tauri arm overlay + arch-aware package-portable.mjs needed (apps/ + scripts/)
-        working-directory: apps/desktop
-        run: |
-          node scripts/generate-demo-file.mjs
-          npm run tauri build -- --target aarch64-pc-windows-msvc --bundles nsis
-          npm run package:portable
-
-      - name: Checksums + upload (win-arm64)
-        if: false # BLOCKED: no bundle artifacts exist until the steps above are unblocked
-        shell: pwsh
-        run: |
-          Write-Host "TODO checksum + upload anvil-windows-arm64-${{ github.ref_name }} once bundling is unblocked"
 
   # ===========================================================================================
   # mac provisioning — ONE arm64 job builds BOTH arches' sidecars, then hands vendor/ to the
@@ -614,20 +519,16 @@ jobs:
 
   # ===========================================================================================
   # release — gather every produced artifact, write ONE merged CHECKSUMS.txt, attach all to the
-  # GitHub Release.  `needs` lists all four build lanes, but the `if` proceeds as long as the
-  # THREE must-have lanes (win-x64 + both mac legs) succeeded — win-arm64's result is ignored, so
-  # a blocked/partial/red arm64 lane never blocks the release. `always()` lets the job evaluate
-  # even when arm64 didn't succeed; the tag guard keeps it release-only.
+  # GitHub Release. Every remaining lane is must-have, so the DEFAULT `needs` gating is exactly
+  # right: this runs only if win-x64 and both mac legs succeeded. (The old `always()` + explicit
+  # result checks existed solely to ignore a red win-arm64 lane, which no longer exists.) The tag
+  # guard keeps it release-only — a manual workflow_dispatch run builds and verifies, never publishes.
   # ===========================================================================================
   release:
     name: publish GitHub Release
-    needs: [build-windows-x64, build-windows-arm64, build-macos]
+    needs: [build-windows-x64, build-macos]
     runs-on: ubuntu-latest
-    if: >-
-      ${{ always()
-        && needs.build-windows-x64.result == 'success'
-        && needs.build-macos.result == 'success'
-        && startsWith(github.ref, 'refs/tags/') }}
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       # `pattern: anvil-*` → download every SHIPPABLE artifact from this run (win-x64, both mac
       # legs, and win-arm64 if it ever produces one) while skipping the internal mac-vendor tarball.
