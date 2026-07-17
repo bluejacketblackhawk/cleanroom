@@ -36,6 +36,22 @@
 
 ---
 
+## Download
+
+Grab a file and run it. No command line, no account, no setup — ffmpeg and the models are bundled in.
+
+| | |
+|---|---|
+| **Windows 10/11** (x64) | [**Installer (.exe)**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_x64-setup.exe) · [portable .zip](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom-0.1.0-portable-x64.zip) |
+| **macOS** (Apple Silicon) | [**Cleanroom_0.1.0_aarch64.dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_aarch64.dmg) |
+| **macOS** (Intel) | [**Cleanroom_0.1.0_x64.dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_x64.dmg) |
+
+It's a **beta**. If it wrecks your audio, [open an issue](https://github.com/bluejacketblackhawk/cleanroom/issues) and it'll get fixed.
+
+The Windows build is unsigned, so SmartScreen will say "unknown publisher" — **More info → Run anyway**. The Mac DMGs are signed and notarized, so they open with a normal double-click.
+
+[All files + SHA-256 checksums →](https://github.com/bluejacketblackhawk/cleanroom/releases/tag/v0.1.0-beta.1)
+
 ## One click, and it sounds mastered
 
 Drop an audio or video file, press **Master**, export. That one button runs the whole chain locally: two-pass loudness to a broadcast target (EBU R128, true-peak safe), AI denoise (DeepFilterNet3) that pulls the room, hiss, and fan out from behind your voice, and adaptive leveling so a quiet guest and a loud host land at the same volume. On a noisy demo episode that's −30 LUFS with a −39 dB noise floor, one click brings it to a dead-on −16 LUFS with the floor pushed down past −67 dB, no clipping. Then flip the **A/B** toggle to hear exactly what it did, per module, sample-aligned. Everything else — tiers, batch, transcription, multitrack — is progressive disclosure on top. The default path is three clicks and nothing else.
@@ -92,7 +108,9 @@ The thing cloud tools make painful, because they meter you: point Cleanroom at a
 - macOS 12+ on Apple Silicon or Intel
 - ~500 MB free disk; the DMGs are signed and notarized, so it's a plain double-click.
 
-## Setup and run
+## Build from source
+
+You don't need any of this to *use* Cleanroom — [download it](#download), run it, done. This is for hacking on it.
 
 Prereqs: [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) 20+, and the platform C toolchain (MSVC C++ Build Tools on Windows, Xcode Command Line Tools on Mac).
 
