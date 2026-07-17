@@ -14,7 +14,7 @@
 //      (it re-signs nested code with the OUTER options/identity and skips per-item entitlements).
 //      So we sign each nested Mach-O explicitly, then the `.app` last WITH its entitlements. `--deep`
 //      is used ONLY to VERIFY (that direction is fine and recommended).
-// Hence ANVIL keeps Tauri UNSIGNED (no `bundle.macOS.signingIdentity` in tauri.macos.conf.json) and
+// Hence Cleanroom keeps Tauri UNSIGNED (no `bundle.macOS.signingIdentity` in tauri.macos.conf.json) and
 // does ALL signing here, after the bundle exists. See docs/adr/012-mac-packaging.md.
 //
 // THE PIPELINE (flow matches ADR-012 §"Signed + notarized"):
@@ -84,7 +84,7 @@ const makeMacDmg = path.join(scriptsDir, "make-mac-dmg.mjs");
 const verifyMacBundle = path.join(scriptsDir, "verify-mac-bundle.mjs");
 const conf = JSON.parse(readFileSync(path.join(srcTauri, "tauri.conf.json"), "utf8"));
 const version = conf.version ?? "0.0.0";
-const productName = conf.productName ?? "ANVIL";
+const productName = conf.productName ?? "Cleanroom";
 
 // codesign contacts Apple's timestamp server (and, on first key use, may raise a keychain
 // authorization dialog). Bound every signing call so a blocked prompt is reported, never spun on.
@@ -134,12 +134,33 @@ function normalizeTriple(sel) {
 const archLabel = (triple) => (/x86_64/.test(triple) ? "x64" : "aarch64");
 
 // --- artifact locators ------------------------------------------------------------------------
+// The bundle dir can hold STALE bundles from before a productName rename (observed in practice:
+// a leftover ANVIL.app next to Cleanroom.app, and "first .app in the dir" picked the stale one —
+// so sign/verify/dmg all silently operated on the WRONG bundle). Selection is therefore
+// deterministic: exactly `<productName>.app` per tauri.conf.json. Strays next to it are warned
+// about; a dir holding ONLY foreign .apps is a hard error, never a guess. --app still overrides.
 function findApp(triple, explicit) {
   if (explicit) return path.resolve(explicit);
+  if (!triple) return null; // no triple to search under (e.g. best-effort lookups with --dmg)
   const macos = path.join(workspaceRoot, "target", triple, "release", "bundle", "macos");
   if (!existsSync(macos)) return null;
-  const a = readdirSync(macos).find((f) => f.endsWith(".app"));
-  return a ? path.join(macos, a) : null;
+  const apps = readdirSync(macos).filter((f) => f.endsWith(".app"));
+  const wanted = `${productName}.app`;
+  if (apps.includes(wanted)) {
+    const strays = apps.filter((a) => a !== wanted);
+    if (strays.length)
+      warn(`ignoring stale bundle(s) next to ${wanted} in ${path.relative(workspaceRoot, macos)}: ${strays.join(", ")}`);
+    return path.join(macos, wanted);
+  }
+  if (apps.length) {
+    die(
+      `${wanted} (the configured productName) not found in ${macos}\n` +
+        `  but the dir does contain: ${apps.join(", ")}\n` +
+        `  Refusing to operate on an arbitrary .app — a stale pre-rename bundle would get signed\n` +
+        `  or imaged otherwise. Delete the stray bundle(s), or pass the intended one via --app <path>.`,
+    );
+  }
+  return null;
 }
 function findDmg(triple, explicit) {
   if (explicit) return path.resolve(explicit);

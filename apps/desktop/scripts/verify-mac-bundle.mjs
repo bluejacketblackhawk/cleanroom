@@ -26,14 +26,22 @@
 // sidecars spawn transparently under Rosetta; the universal2 sherpa binary runs native either way.
 
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const desktopDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const workspaceRoot = path.join(desktopDir, "..", "..");
+const conf = JSON.parse(
+  readFileSync(path.join(desktopDir, "src-tauri", "tauri.conf.json"), "utf8"),
+);
+const productName = conf.productName ?? "Cleanroom";
 
 // --- locate the .app ---------------------------------------------------------------------------
+// Deterministic: exactly `<productName>.app` per tauri.conf.json — never "the first .app in the
+// dir", which once picked a stale pre-rename ANVIL.app over Cleanroom.app and validated the wrong
+// bundle. Strays next to the real one are noted; a dir holding ONLY foreign .apps is a hard error.
+// An explicit <path-to-.app> argument still wins unchanged.
 function resolveAppPath(argv) {
   const args = argv.slice(2);
   // explicit path to a .app
@@ -51,8 +59,24 @@ function resolveAppPath(argv) {
     ? path.join(workspaceRoot, "target", triple, "release", "bundle", "macos")
     : path.join(workspaceRoot, "target", "release", "bundle", "macos");
   if (!existsSync(bundleMacos)) return null;
-  const app = readdirSync(bundleMacos).find((f) => f.endsWith(".app"));
-  return app ? path.join(bundleMacos, app) : null;
+  const apps = readdirSync(bundleMacos).filter((f) => f.endsWith(".app"));
+  const wanted = `${productName}.app`;
+  if (apps.includes(wanted)) {
+    const strays = apps.filter((a) => a !== wanted);
+    if (strays.length)
+      console.error(`verify-mac-bundle: note — ignoring stale bundle(s) next to ${wanted}: ${strays.join(", ")}`);
+    return path.join(bundleMacos, wanted);
+  }
+  if (apps.length) {
+    console.error(
+      `verify-mac-bundle: ${wanted} (the configured productName) not found in ${bundleMacos}\n` +
+        `  but the dir does contain: ${apps.join(", ")}\n` +
+        `  Refusing to verify an arbitrary .app — it could be a stale pre-rename bundle.\n` +
+        `  Delete the stray bundle(s), or pass the intended .app path explicitly.`,
+    );
+    process.exit(2);
+  }
+  return null;
 }
 
 const appPath = resolveAppPath(process.argv);
@@ -208,7 +232,9 @@ if (plist) {
 // which runs against the built `.app` with the exact code the gate uses. See ADR-012.
 section("[5] per-Mach-O signing integrity (codesign --verify --strict; content-hash pin gate lives in cargo test)");
 const machO = [
-  path.join(macosDir, readdirSync(macosDir).find((f) => !f.includes(".")) || "ANVIL"),
+  // the main executable: CFBundleExecutable is authoritative (still `anvil-desktop` — the Cargo
+  // package name — post-rename); the no-dot scan covers a plist parse failure.
+  path.join(macosDir, plist?.CFBundleExecutable || readdirSync(macosDir).find((f) => !f.includes(".")) || productName),
   ...binaries.map((b) => path.join(resources, b.rel)),
   path.join(resources, "sherpa/lib/libonnxruntime.1.17.1.dylib"),
 ];
