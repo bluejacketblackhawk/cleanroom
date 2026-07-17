@@ -1,12 +1,12 @@
 {
   "_comment": [
-    "The exact sherpa-onnx speaker-diarization sidecar + default models ANVIL ships, keyed by",
+    "The exact sherpa-onnx speaker-diarization sidecar + default models Cleanroom ships, keyed by",
     "target. Single source of truth for scripts/fetch-sherpa.ps1 (windows-x86_64) and",
     "scripts/fetch-sherpa-macos.sh (macos-aarch64 / macos-x86_64). Mirrors the whisper pin's",
     "targets-map shape; the target string is format!(\"{}-{}\", consts::OS, consts::ARCH).",
     "",
     "sherpa-onnx is run as a SEPARATE PROCESS (sherpa-onnx-offline-speaker-diarization) and is",
-    "never linked into ANVIL. The engine binary is Apache-2.0 (k2-fsa/sherpa-onnx); the bundled",
+    "never linked into Cleanroom. The engine binary is Apache-2.0 (k2-fsa/sherpa-onnx); the bundled",
     "onnxruntime is MIT (Microsoft ONNX Runtime), redistributed by the sherpa release. Both are",
     "cleanly redistributable in an MIT app. The 'shared' build is used because it carries the",
     "runnable CLIs + onnxruntime; the diarization exe STATICALLY links the sherpa C++ core, so",

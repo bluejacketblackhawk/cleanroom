@@ -1,6 +1,6 @@
 //! # anvil-dsp
 //!
-//! Deterministic, block-based DSP for the ANVIL mastering chain (spec: `handoff/03-DSP-SPEC.md`).
+//! Deterministic, block-based DSP for the Cleanroom mastering chain (spec: `handoff/03-DSP-SPEC.md`).
 //! M1 ships the analysis pass (§1) and Chain v1 (§3 subset): DC/HPF (§4.1), AI denoise
 //! (§4.4, via `anvil-ai`), adaptive leveler (§4.8), two-pass loudness normalize (§4.9),
 //! true-peak limiter (§4.10), and dither (§4.11), plus the auto-decision (§2) and Health Card.

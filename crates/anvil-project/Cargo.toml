@@ -1,6 +1,6 @@
 [package]
 name = "anvil-project"
-description = "ANVIL project/preset/settings model (02 §Project & data model): .anvilproj, presets, EDL cut-lists, migrations."
+description = "Cleanroom project/preset/settings model (02 §Project & data model): .anvilproj, presets, EDL cut-lists, migrations."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

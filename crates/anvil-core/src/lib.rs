@@ -1,6 +1,6 @@
 //! # anvil-core
 //!
-//! The UI-independent heart of ANVIL: error types, the cancellable job system, the
+//! The UI-independent heart of Cleanroom: error types, the cancellable job system, the
 //! processing-graph model (added in M0.E / M1), analysis orchestration, and the
 //! [`platform`] abstraction that is the *only* place OS-specific `#[cfg]` branching is
 //! allowed (ADR-006).

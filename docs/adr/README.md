@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-This directory contains architecture decision records for ANVIL (codename for the local podcast mastering app). Each ADR documents a major decision, its context, the decision made, and its consequences.
+This directory contains architecture decision records for Cleanroom (codename for the local podcast mastering app). Each ADR documents a major decision, its context, the decision made, and its consequences.
 
 ## ADRs
 

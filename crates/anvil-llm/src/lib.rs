@@ -22,7 +22,7 @@
 //! linking llama.cpp means cmake + bindgen + libclang + a C++ toolchain on every dev machine
 //! and CI runner, a multi-minute build, and a GPU-backend matrix baked into *our* binary.
 //! Sidecar keeps `cargo build` pure-Rust and seconds long, and lets a user drop in a
-//! Vulkan/Metal/CUDA build of llama.cpp without recompiling ANVIL. See [`sidecar`].
+//! Vulkan/Metal/CUDA build of llama.cpp without recompiling Cleanroom. See [`sidecar`].
 //!
 //! ## The pipeline
 //! [`chunk`] (fit a 2-hour episode into an 8k window) → [`prompt`] (one versioned place) →

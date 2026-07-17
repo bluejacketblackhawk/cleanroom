@@ -1,10 +1,10 @@
-# PROJECT ANVIL — Build Handoff
+# Cleanroom — Build Handoff
 
 **One-liner:** A free, open-source (MIT), 100% local desktop app that makes any podcast recording sound professionally mastered in one click — loudness normalization + AI denoise + adaptive leveling — with zero cloud, zero credits, zero subscription. The Auphonic / Adobe Podcast alternative that runs on *your* machine.
 
 **Status:** Scoping complete. Nothing built. Empty repo. This folder is the complete specification.
 
-**Codename:** ANVIL (internal only — final product name is an open decision, see [07-RISKS-LEGAL.md](07-RISKS-LEGAL.md) §Naming. Do NOT name it "Speechify" — that is an existing trademarked TTS company, despite this folder's name).
+**Codename:** Cleanroom (internal only — final product name is an open decision, see [07-RISKS-LEGAL.md](07-RISKS-LEGAL.md) §Naming. Do NOT name it "Speechify" — that is an existing trademarked TTS company, despite this folder's name).
 
 ---
 

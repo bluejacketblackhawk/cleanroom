@@ -71,7 +71,7 @@ pub trait Platform: Send + Sync {
     /// Short platform name, for diagnostics and logs.
     fn name(&self) -> &'static str;
 
-    /// Add a "Master with ANVIL" verb to the Explorer context menu for ANVIL's
+    /// Add a "Master with Cleanroom" verb to the Explorer context menu for Cleanroom's
     /// supported audio/video file types (M2 lane D). Per-user (`HKCU`) only — no admin
     /// rights required — and registered under `SystemFileAssociations` so it never
     /// touches a type's default "Open" handler. Idempotent.
@@ -81,7 +81,7 @@ pub trait Platform: Send + Sync {
     /// Idempotent — safe to call when nothing is registered.
     fn unregister_context_menu(&self) -> PlatformResult<()>;
 
-    /// Register ANVIL as an "Open with" handler for its supported audio/video file
+    /// Register Cleanroom as an "Open with" handler for its supported audio/video file
     /// types. Per-user, additive only — it never changes a type's default handler.
     fn register_file_associations(&self) -> PlatformResult<()>;
 
@@ -89,7 +89,7 @@ pub trait Platform: Send + Sync {
     /// [`Platform::register_file_associations`]. Idempotent.
     fn unregister_file_associations(&self) -> PlatformResult<()>;
 
-    /// Enable or disable launching the ANVIL tray/watch-folder agent at login
+    /// Enable or disable launching the Cleanroom tray/watch-folder agent at login
     /// (default off). Owns only the registry plumbing — the agent itself is M2 lane E.
     fn set_autostart(&self, enabled: bool) -> PlatformResult<()>;
 
@@ -219,14 +219,14 @@ impl Platform for CurrentPlatform {
 }
 
 /// Obtain the platform implementation for the current OS.
-/// Remove the registry/shell footprint of the pre-rename **ANVIL** identity, so an in-place
-/// upgrade from an old ANVIL install doesn't leave orphaned "Open with" / context-menu /
+/// Remove the registry/shell footprint of the pre-rename **Cleanroom** identity, so an in-place
+/// upgrade from an old Cleanroom install doesn't leave orphaned "Open with" / context-menu /
 /// autostart entries (the rename changed their key names, so the installer never removes
 /// them). Per-user, idempotent, best-effort. No-op on non-Windows.
 pub fn remove_legacy_windows_identity() {
     #[cfg(windows)]
     if let Err(e) = windows::remove_legacy_identity() {
-        tracing::warn!(error = %e, "failed to remove legacy ANVIL shell integration");
+        tracing::warn!(error = %e, "failed to remove legacy Cleanroom shell integration");
     }
 }
 

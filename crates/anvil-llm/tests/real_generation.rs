@@ -3,8 +3,8 @@
 //! Gated on the environment so `cargo test` stays green (and offline, and fast) on machines
 //! without the model pack — which is every CI runner and most dev machines, since the pack is
 //! a 4.7 GB optional download. It runs only when both are set and point at real files:
-//! - `ANVIL_LLAMA`     — path to `llama-cli`(`.exe`) from a recent llama.cpp build,
-//! - `ANVIL_LLM_MODEL` — path to a Qwen2.5-Instruct `.gguf`.
+//! - `CLEANROOM_LLAMA`     — path to `llama-cli`(`.exe`) from a recent llama.cpp build,
+//! - `CLEANROOM_LLM_MODEL` — path to a Qwen2.5-Instruct `.gguf`.
 //!
 //! When either is missing the test prints a skip note and passes. This mirrors
 //! `anvil-asr/tests/transcribe.rs`.
@@ -27,9 +27,10 @@ fn env_file(key: &str) -> Option<PathBuf> {
 
 #[test]
 fn real_shownotes_when_the_model_pack_is_installed() {
-    let (Some(llama), Some(model)) = (env_file("ANVIL_LLAMA"), env_file("ANVIL_LLM_MODEL")) else {
+    let (Some(llama), Some(model)) = (env_file("CLEANROOM_LLAMA"), env_file("CLEANROOM_LLM_MODEL"))
+    else {
         eprintln!(
-            "skipping real generation: set ANVIL_LLAMA (llama-cli) and ANVIL_LLM_MODEL (a \
+            "skipping real generation: set CLEANROOM_LLAMA (llama-cli) and CLEANROOM_LLM_MODEL (a \
              Qwen2.5-Instruct gguf), both pointing at real files, to run it"
         );
         return;

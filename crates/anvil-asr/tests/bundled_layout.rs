@@ -1,5 +1,5 @@
 //! Proof that a **clean install** resolves the whisper.cpp and sherpa-onnx sidecars
-//! exe-relative with no `ANVIL_*` environment, plus guards keeping the provisioning pins
+//! exe-relative with no `CLEANROOM_*` environment, plus guards keeping the provisioning pins
 //! (`scripts/whisper-pin.json`, `scripts/sherpa-pin.json`) honest against the app.
 //!
 //! Packaging drops the whisper bundle into a `whisper/` folder and the sherpa bundle into a
@@ -13,9 +13,9 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-const PROBE_ENV: &str = "ANVIL_ASR_BUNDLED_PROBE";
+const PROBE_ENV: &str = "CLEANROOM_ASR_BUNDLED_PROBE";
 
-/// Child half of the re-exec: resolve both sidecars with no `ANVIL_*` help and report. A normal
+/// Child half of the re-exec: resolve both sidecars with no `CLEANROOM_*` help and report. A normal
 /// `cargo test` run (no [`PROBE_ENV`]) returns immediately.
 #[test]
 fn probe_locate_sidecars() {
@@ -71,7 +71,7 @@ fn clean_install_layout_resolves_whisper_and_sherpa_env_free() {
         "--test-threads=1",
     ]);
     for (k, _) in std::env::vars() {
-        if k.starts_with("ANVIL_") {
+        if k.starts_with("CLEANROOM_") {
             cmd.env_remove(k);
         }
     }
@@ -103,7 +103,7 @@ fn clean_install_layout_resolves_whisper_and_sherpa_env_free() {
 /// `Contents/MacOS/<app>` and the sidecars are bundle resources under `Contents/Resources/` —
 /// whisper flat (`Resources/whisper/whisper-cli`), sherpa structured with its `bin/` + `lib/`
 /// siblings (`Resources/sherpa/bin/<exe>`). Proves [`WhisperSidecar::locate`] and
-/// [`DiarizeSidecar::locate`] resolve both from `../Resources/` with `ANVIL_*` stripped, AND
+/// [`DiarizeSidecar::locate`] resolve both from `../Resources/` with `CLEANROOM_*` stripped, AND
 /// exercises the provisioning hash gate: the staged binaries are the REAL vendored mac builds, so
 /// their RAW sha256 must equal the code-side pins ([`anvil_asr::whisper_pinned_sha256`] /
 /// [`anvil_asr::sherpa_pinned_sha256`]). Skips cleanly off macOS or when `vendor/` (gitignored)
@@ -159,7 +159,7 @@ fn macos_app_bundle_layout_resolves_from_resources_with_hash_gate() {
         "--test-threads=1",
     ]);
     for (k, _) in std::env::vars() {
-        if k.starts_with("ANVIL_") {
+        if k.starts_with("CLEANROOM_") {
             cmd.env_remove(k);
         }
     }
@@ -218,7 +218,7 @@ fn macos_app_bundle_layout_resolves_from_resources_with_hash_gate() {
 /// provision pin (`sha256` / `binary_sha256`), and that the signing-independent CONTENT hash of a
 /// FULLY (ad-hoc) signed copy equals the pin's `content_sha256` — and, for every
 /// Developer-ID-signed copy present (the built `.app` in `target/`, and the installed
-/// `/Applications/ANVIL.app` for this host's arch), equals the content hash of the re-signed
+/// `/Applications/Cleanroom.app` for this host's arch), equals the content hash of the re-signed
 /// copy, whose RAW hash DIFFERS from the vendor's.
 ///
 /// That last equality is the whole design: a signed sidecar still matches its pin. "Fully signed"
@@ -257,7 +257,7 @@ fn signed_bundle_content_hash_matches_the_pins() {
             .find(|p| p.target == target)
             .unwrap();
         let res = repo.join(format!(
-            "target/{triple}/release/bundle/macos/ANVIL.app/Contents/Resources"
+            "target/{triple}/release/bundle/macos/Cleanroom.app/Contents/Resources"
         ));
 
         // (label, vendor path, raw pin, content pin, bundled .app path)
@@ -290,7 +290,7 @@ fn signed_bundle_content_hash_matches_the_pins() {
         ];
 
         // The built bundle in target/, plus — for this host's arch — the installed
-        // /Applications/ANVIL.app copy (the artifact the shipped-app failure lived in).
+        // /Applications/Cleanroom.app copy (the artifact the shipped-app failure lived in).
         let host_target = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
         for (name, vendor, raw_pin, content_pin, app) in items {
             if vendor.is_file() {
@@ -311,8 +311,9 @@ fn signed_bundle_content_hash_matches_the_pins() {
                 let rel = app
                     .strip_prefix(&res)
                     .expect("bundled path is under Resources");
-                signed_copies
-                    .push(PathBuf::from("/Applications/ANVIL.app/Contents/Resources").join(rel));
+                signed_copies.push(
+                    PathBuf::from("/Applications/Cleanroom.app/Contents/Resources").join(rel),
+                );
             }
             for signed in signed_copies.into_iter().filter(|p| p.is_file()) {
                 let bundled = anvil_asr::macho_content_sha256(&signed)

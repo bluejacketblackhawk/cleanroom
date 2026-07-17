@@ -8,7 +8,7 @@
 
 ## Context
 
-M6 ports ANVIL to macOS. The engine is already cross-platform; what remained was the *bundle*: a
+M6 ports Cleanroom to macOS. The engine is already cross-platform; what remained was the *bundle*: a
 `.app`/`.dmg` that, on a clean Mac with no dev tools and no env vars, resolves the three sidecars
 (ffmpeg, whisper.cpp, sherpa-onnx) and the diarization models the same way the Windows installer
 does. Two macOS-specific facts shape every decision here:
@@ -63,7 +63,7 @@ nonzero on any failure so CI catches a regression, never a user.
 
 **One shared onnxruntime dylib.** `ort` (in-process DeepFilterNet3) is built `load-dynamic` on Intel
 macOS — `ort` ships no prebuilt x86_64-darwin binary, so it resolves onnxruntime at run time from
-`ORT_DYLIB_PATH` (`crates/anvil-ai/Cargo.toml`). Rather than bundle a second onnxruntime, ANVIL
+`ORT_DYLIB_PATH` (`crates/anvil-ai/Cargo.toml`). Rather than bundle a second onnxruntime, Cleanroom
 reuses the **one** the sherpa sidecar already carries (`sherpa/lib/libonnxruntime.1.17.1.dylib`,
 Microsoft's universal2 1.17.1, which covers x86_64). `apps/desktop/src-tauri/src/lib.rs` sets
 `ORT_DYLIB_PATH` to that copy at launch — `cfg(all(target_os="macos", target_arch="x86_64"))`, first
@@ -101,7 +101,7 @@ onnxruntime are re-signed with the **same** team identity, hardened-runtime libr
 accepts the (now same-team) dylib — proven by `verify-mac-bundle.mjs` spawning every signed sidecar
 **env-free** on both arches (arm64 native, x86_64 via Rosetta). The identity is not hardcoded beyond
 the team ID: `sign-mac.mjs` auto-detects the first "Developer ID Application" from
-`security find-identity`, overridable via `$ANVIL_SIGN_IDENTITY` or `--identity`.
+`security find-identity`, overridable via `$CLEANROOM_SIGN_IDENTITY` or `--identity`.
 
 *Reading spctl correctly.* After the signing half and **before** notarization, `spctl --assess`
 **must** report *rejected — "Unnotarized Developer ID"* on both the `.app` (`--type execute`) and the
@@ -124,7 +124,7 @@ node apps/desktop/scripts/sign-mac.mjs staple   --target all
 `sign-mac.mjs` gates on the profile: until it exists, `release-mac` stops after the signed DMG and
 prints exactly this; once it exists the same command notarizes, staples the DMG (and best-effort the
 `.app`), and re-verifies to the *accepted* state. Notarizing the DMG covers the app inside it, so a
-user dragging ANVIL.app to /Applications gets a clean first launch.
+user dragging Cleanroom.app to /Applications gets a clean first launch.
 
 ## The content-hash pin — reconciling the hash gate with code signing
 

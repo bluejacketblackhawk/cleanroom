@@ -1,6 +1,6 @@
-# ANVIL License Compliance
+# Cleanroom License Compliance
 
-ANVIL is released under the **MIT License**. Every bundled dependency and model must be MIT-redistribution-compatible (MIT, Apache-2.0, BSD-3, or equivalent permissive license with no GPLv2+ viral clauses).
+Cleanroom is released under the **MIT License**. Every bundled dependency and model must be MIT-redistribution-compatible (MIT, Apache-2.0, BSD-3, or equivalent permissive license with no GPLv2+ viral clauses).
 
 **CI Enforcement:** Dependency licenses are verified automatically:
 - Rust: `cargo-deny` checks `Cargo.lock` and enforced in CI (see `deny.toml`)

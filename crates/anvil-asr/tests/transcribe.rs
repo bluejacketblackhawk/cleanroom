@@ -3,9 +3,9 @@
 //! This test is **gated on the environment** so `cargo test` stays green (and offline) on
 //! machines without whisper installed. It runs only when all three are set and point at real
 //! files:
-//! - `ANVIL_WHISPER`        — path to `whisper-cli`(`.exe`),
-//! - `ANVIL_WHISPER_MODEL`  — path to a `ggml-*.bin`,
-//! - `ANVIL_ASR_TEST_AUDIO` — path to a short audio file (ideally 16 kHz mono WAV).
+//! - `CLEANROOM_WHISPER`        — path to `whisper-cli`(`.exe`),
+//! - `CLEANROOM_WHISPER_MODEL`  — path to a `ggml-*.bin`,
+//! - `CLEANROOM_ASR_TEST_AUDIO` — path to a short audio file (ideally 16 kHz mono WAV).
 //!
 //! When any is missing the test prints a skip note and passes.
 
@@ -21,19 +21,19 @@ fn env_file(key: &str) -> Option<PathBuf> {
 #[test]
 fn real_transcribe_when_whisper_available() {
     let (Some(whisper), Some(model), Some(audio)) = (
-        env_file("ANVIL_WHISPER"),
-        env_file("ANVIL_WHISPER_MODEL"),
-        env_file("ANVIL_ASR_TEST_AUDIO"),
+        env_file("CLEANROOM_WHISPER"),
+        env_file("CLEANROOM_WHISPER_MODEL"),
+        env_file("CLEANROOM_ASR_TEST_AUDIO"),
     ) else {
         eprintln!(
-            "skipping real transcribe: set ANVIL_WHISPER, ANVIL_WHISPER_MODEL, and \
-             ANVIL_ASR_TEST_AUDIO (all pointing at real files) to run it"
+            "skipping real transcribe: set CLEANROOM_WHISPER, CLEANROOM_WHISPER_MODEL, and \
+             CLEANROOM_ASR_TEST_AUDIO (all pointing at real files) to run it"
         );
         return;
     };
 
-    // Sanity-check the sidecar locator resolves the same binary from ANVIL_WHISPER.
-    let sidecar = WhisperSidecar::locate().expect("locate whisper via ANVIL_WHISPER");
+    // Sanity-check the sidecar locator resolves the same binary from CLEANROOM_WHISPER.
+    let sidecar = WhisperSidecar::locate().expect("locate whisper via CLEANROOM_WHISPER");
     assert_eq!(sidecar.binary(), whisper.as_path());
 
     let opts = TranscribeOptions {

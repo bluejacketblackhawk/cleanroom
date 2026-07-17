@@ -145,4 +145,4 @@ fi
 echo
 say_ok "sherpa-onnx $(jq -r '.targets."macos-aarch64".version' "$PIN") diarization sidecar staged for: $TARGETS"
 echo "Record the SHA256SUMS above into scripts/sherpa-pin.json (.targets.<target>.binary) and"
-echo "crates/anvil-asr/src/pin.rs (SHERPA_PINS). For dev: export ANVIL_DIARIZE=<dir>/bin/$EXE"
+echo "crates/anvil-asr/src/pin.rs (SHERPA_PINS). For dev: export CLEANROOM_DIARIZE=<dir>/bin/$EXE"

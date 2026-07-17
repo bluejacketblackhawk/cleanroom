@@ -1,6 +1,6 @@
 //! Supply-chain tests for the ffmpeg sidecar (handoff/07-RISKS-LEGAL §2).
 //!
-//! ANVIL is MIT and **redistributes** an ffmpeg binary. Two things must therefore be true of
+//! Cleanroom is MIT and **redistributes** an ffmpeg binary. Two things must therefore be true of
 //! whatever we ship, and both are release blockers rather than niceties:
 //!
 //! 1. it is exactly the build we audited — enforced by a sha256 pin, so a swapped or corrupted
@@ -11,7 +11,7 @@
 //! The pure checks (the pin is well formed, a wrong binary is rejected, a GPL configure line is
 //! caught) live as unit tests in `src/sidecar.rs` and always run. The tests here need the real
 //! binary, so they **skip cleanly** when it has not been provisioned — run
-//! `scripts/fetch-ffmpeg.ps1` and set `ANVIL_FFMPEG` to exercise them. Packaging must run them
+//! `scripts/fetch-ffmpeg.ps1` and set `CLEANROOM_FFMPEG` to exercise them. Packaging must run them
 //! green: see `ffmpeg_shipped_by_this_machine_is_the_audited_lgpl_build`.
 
 use anvil_media::sidecar::{
@@ -24,10 +24,10 @@ use anvil_media::sidecar::{content_pinned_sha256, macho_content_sha256, FFMPEG_P
 #[cfg(target_os = "macos")]
 use std::path::PathBuf;
 
-/// The sidecar ANVIL would actually run on this machine, or `None` if none is provisioned.
+/// The sidecar Cleanroom would actually run on this machine, or `None` if none is provisioned.
 ///
 /// Note this deliberately goes through `locate()`, so it is subject to the same integrity
-/// policy the app uses — a developer running with `ANVIL_FFMPEG_ALLOW_UNPINNED=1` and a GPL
+/// policy the app uses — a developer running with `CLEANROOM_FFMPEG_ALLOW_UNPINNED=1` and a GPL
 /// ffmpeg will reach the assertions below and **fail** them, which is the intended alarm.
 fn located() -> Option<FfmpegSidecar> {
     match FfmpegSidecar::locate() {
@@ -55,7 +55,7 @@ fn ffmpeg_shipped_by_this_machine_is_the_audited_lgpl_build() {
     let markers = gpl_markers_in(&configure);
     assert!(
         markers.is_empty(),
-        "the ffmpeg ANVIL would run is a GPL/nonfree build (enables: {}). ANVIL is MIT and \
+        "the ffmpeg Cleanroom would run is a GPL/nonfree build (enables: {}). Cleanroom is MIT and \
          ships this binary — it must be LGPL-only.\nbinary: {}\nconfigure: {configure}",
         markers.join(", "),
         sidecar.binary().display(),
@@ -78,7 +78,7 @@ fn a_located_sidecar_on_a_pinned_platform_matches_the_pin() {
     let Some(sidecar) = located() else { return };
 
     // `locate()` only returns a binary that already passed `verify_hash`, unless the developer
-    // set ANVIL_FFMPEG_ALLOW_UNPINNED. Re-hash independently so the escape hatch cannot make
+    // set CLEANROOM_FFMPEG_ALLOW_UNPINNED. Re-hash independently so the escape hatch cannot make
     // this test vacuous.
     let actual = sha256_file(sidecar.binary()).expect("hash the located binary");
 
@@ -107,7 +107,7 @@ fn a_located_sidecar_on_a_pinned_platform_matches_the_pin() {
 /// `verify-mac-bundle.mjs` defers to). For each macOS ffmpeg pin it asserts that the
 /// signing-independent content hash of the **vendored** (ad-hoc-signed) binary equals the pin's
 /// `content_sha256` AND — for every Developer-ID-signed copy present (the built `.app` in
-/// `target/`, and the installed `/Applications/ANVIL.app` for this host's arch) — equals the
+/// `target/`, and the installed `/Applications/Cleanroom.app` for this host's arch) — equals the
 /// content hash of the **re-signed** copy, even though their RAW sha256s differ. That equality
 /// is exactly what makes the runtime gate survive signing. Then it drives the real gate
 /// (`FfmpegSidecar::from_path`) against each signed copy, proving the GUI "hash mismatch"
@@ -153,11 +153,11 @@ fn signed_bundle_ffmpeg_content_hash_matches_the_pin() {
         // was reproduced in.
         let host_target = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
         let mut signed_copies = vec![repo.join(format!(
-            "target/{triple}/release/bundle/macos/ANVIL.app/Contents/Resources/ffmpeg/ffmpeg"
+            "target/{triple}/release/bundle/macos/Cleanroom.app/Contents/Resources/ffmpeg/ffmpeg"
         ))];
         if pin.target == host_target {
             signed_copies.push(PathBuf::from(
-                "/Applications/ANVIL.app/Contents/Resources/ffmpeg/ffmpeg",
+                "/Applications/Cleanroom.app/Contents/Resources/ffmpeg/ffmpeg",
             ));
         }
         for bundled in signed_copies.into_iter().filter(|p| p.is_file()) {
@@ -189,9 +189,9 @@ fn signed_bundle_ffmpeg_content_hash_matches_the_pin() {
     let here = format!("{}-{}", std::env::consts::ARCH, "apple-darwin");
     let gate_targets = [
         repo.join(format!(
-            "target/{here}/release/bundle/macos/ANVIL.app/Contents/Resources/ffmpeg/ffmpeg"
+            "target/{here}/release/bundle/macos/Cleanroom.app/Contents/Resources/ffmpeg/ffmpeg"
         )),
-        PathBuf::from("/Applications/ANVIL.app/Contents/Resources/ffmpeg/ffmpeg"),
+        PathBuf::from("/Applications/Cleanroom.app/Contents/Resources/ffmpeg/ffmpeg"),
     ];
     for bundled_here in gate_targets.into_iter().filter(|p| p.is_file()) {
         let sidecar = FfmpegSidecar::from_path(&bundled_here).unwrap_or_else(|e| {

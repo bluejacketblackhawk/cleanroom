@@ -4,7 +4,7 @@
 # reproducibly and verifiably. The macOS analogue of scripts/fetch-whisper.ps1.
 #
 # whisper.cpp v1.9.1 ships ZERO macOS release binaries (only whisper-bin-x64.zip for Windows),
-# so on macOS we build from source at the pinned tag. ANVIL is MIT and runs whisper.cpp as a
+# so on macOS we build from source at the pinned tag. Cleanroom is MIT and runs whisper.cpp as a
 # SIDECAR PROCESS (never linked), so the build stays MIT-clean: the default shared build, no
 # GGML_STATIC (broken global -static on Apple), Metal + Accelerate for the perf.
 #
@@ -13,7 +13,7 @@
 #      no Homebrew on this machine),
 #   2. clones whisper.cpp at the pinned tag (scripts/whisper-pin.json .targets.*.source_ref),
 #   3. builds whisper-cli SEPARATELY for arm64 and x86_64 — two single-arch builds, NOT universal
-#      (ANVIL bundles per-arch). GGML_NATIVE=OFF (critical: the default bakes -march=native, which
+#      (Cleanroom bundles per-arch). GGML_NATIVE=OFF (critical: the default bakes -march=native, which
 #      is non-portable in a shipped binary; OFF gives the portable baseline and Metal/Accelerate
 #      carry the perf). Metal stays on by default and GGML_METAL_EMBED_LIBRARY is ON at this tag,
 #      so the metallib is embedded in libggml-metal.dylib — no loose .metal/.metallib to ship,
@@ -110,7 +110,7 @@ ensure_src() {
 }
 
 # --- 3+4. build one arch, stage flat, fix rpaths, re-sign --------------------------------------
-# $1 = cmake arch (arm64|x86_64), $2 = ANVIL target (macos-aarch64|macos-x86_64)
+# $1 = cmake arch (arm64|x86_64), $2 = Cleanroom target (macos-aarch64|macos-x86_64)
 build_and_stage() {
   local carch="$1" target="$2"
   local build="$SRC_DIR/build-$carch"
@@ -183,7 +183,7 @@ locate_model() {
   # An existing whisper model anywhere we can find one, else download tiny.en to vendor/models-dev.
   local m
   for m in \
-    "${ANVIL_WHISPER_MODEL:-}" \
+    "${CLEANROOM_WHISPER_MODEL:-}" \
     "$REPO_ROOT/vendor/models/ggml-tiny.en.bin" \
     "$REPO_ROOT/vendor/models-dev/ggml-tiny.en.bin"; do
     [ -n "$m" ] && [ -f "$m" ] && { echo "$m"; return; }
@@ -206,7 +206,7 @@ make_wav() {
   # A 3 s 16 kHz mono WAV of real speech via macOS `say` (no ffmpeg needed); tone fallback.
   local out="$1"
   if command -v say >/dev/null 2>&1 && \
-     say -o "$out" --data-format=LEI16@16000 "Hello, this is a test of the ANVIL whisper sidecar." 2>/dev/null; then
+     say -o "$out" --data-format=LEI16@16000 "Hello, this is a test of the Cleanroom whisper sidecar." 2>/dev/null; then
     return 0
   fi
   python3 - "$out" <<'PY'
@@ -270,4 +270,4 @@ esac
 echo
 say_ok "whisper.cpp $GIT_REF macOS sidecars staged under vendor/whisper/"
 echo "Record the SHA256SUMS above into scripts/whisper-pin.json (.targets.<target>) and"
-echo "crates/anvil-asr/src/pin.rs (WHISPER_PINS). For dev: export ANVIL_WHISPER=<staged>/whisper-cli"
+echo "crates/anvil-asr/src/pin.rs (WHISPER_PINS). For dev: export CLEANROOM_WHISPER=<staged>/whisper-cli"

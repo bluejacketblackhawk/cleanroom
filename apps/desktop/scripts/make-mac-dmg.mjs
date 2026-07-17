@@ -47,7 +47,7 @@ const bundleDir = triple
   ? path.join(workspaceRoot, "target", triple, "release", "bundle")
   : path.join(workspaceRoot, "target", "release", "bundle");
 // Deterministic bundle selection: exactly `<productName>.app` — never "the first .app in the
-// dir", which once picked a stale pre-rename ANVIL.app over Cleanroom.app and imaged the wrong
+// dir", which once picked a stale pre-rename Cleanroom.app over Cleanroom.app and imaged the wrong
 // bundle into a correctly-named DMG. Strays next to the real one are noted; a dir holding ONLY
 // foreign .apps is a hard error. An explicit <path-to-.app> argument still wins unchanged.
 const appPath = explicitApp

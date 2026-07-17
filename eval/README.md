@@ -1,4 +1,4 @@
-# ANVIL eval harness (dev-only — never shipped)
+# Cleanroom eval harness (dev-only — never shipped)
 
 The referee for every DSP/AI decision. No PR touching the processing chain merges without
 an eval run (handoff/06-QUALITY-EVAL.md). Python is allowed here because this code never
@@ -126,7 +126,7 @@ caller (`master-eval`, `regress`) skips the DNSMOS check cleanly rather than cra
 
 ### Loudness conformance (M0 exit gate)
 
-`06-QUALITY-EVAL.md` §2 requires ANVIL's own loudness measurement (`anvil analyze
+`06-QUALITY-EVAL.md` §2 requires Cleanroom's own loudness measurement (`anvil analyze
 <file> --json`, the Rust engine) to match an independent ffmpeg `ebur128` measurement
 within +/-0.1 LU on 10 fixtures before M0 exits, plus a zero-tolerance true-peak
 ceiling check. `run.py conformance` is that comparison harness:
@@ -134,7 +134,7 @@ ceiling check. `run.py conformance` is that comparison harness:
 ```sh
 python run.py fixtures                                        # build local self-test fixtures
 python run.py conformance                                     # ffmpeg-only (no cross-check yet)
-python run.py conformance --anvil-json anvil-measurements.json # cross-check against ANVIL
+python run.py conformance --anvil-json anvil-measurements.json # cross-check against Cleanroom
 ```
 
 `--fixtures` accepts either a directory of `*.wav` files or a JSON manifest (the

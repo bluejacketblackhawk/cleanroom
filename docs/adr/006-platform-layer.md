@@ -6,7 +6,7 @@
 
 ## Context
 
-ANVIL targets Windows and macOS with identical features and quality. Porting from Windows to macOS (or vice versa) should not require architectural rewrites. Platform differences exist (file dialogs, notifications, OS encoders, shell integration) but must be isolated to prevent feature drift and build-time surprises. Compile-time enforcement (CI checks macOS builds from M0) surfaces platform isms immediately.
+Cleanroom targets Windows and macOS with identical features and quality. Porting from Windows to macOS (or vice versa) should not require architectural rewrites. Platform differences exist (file dialogs, notifications, OS encoders, shell integration) but must be isolated to prevent feature drift and build-time surprises. Compile-time enforcement (CI checks macOS builds from M0) surfaces platform isms immediately.
 
 ## Decision
 

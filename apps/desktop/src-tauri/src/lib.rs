@@ -1,4 +1,4 @@
-//! ANVIL Tauri shell. Commands are thin: they validate input and hand heavy work to the
+//! Cleanroom Tauri shell. Commands are thin: they validate input and hand heavy work to the
 //! Rust job system (worker threads + cancellation + `job://progress` events), returning
 //! immediately. Audio playback never crosses the webview — the Rust side owns it via
 //! `cpal` and the UI is a remote control (02 §Non-obvious consequences). M0 lane-C shipped
@@ -46,10 +46,10 @@ mod shownotes;
 mod transcript;
 mod watch;
 
-/// Filename of the ONNX Runtime dynamic library ANVIL bundles. On Intel (x86_64) macOS,
+/// Filename of the ONNX Runtime dynamic library Cleanroom bundles. On Intel (x86_64) macOS,
 /// `anvil-ai`'s `ort` is built `load-dynamic` (see `crates/anvil-ai/Cargo.toml`): `ort` ships no
 /// prebuilt Intel-mac binary, so instead of linking onnxruntime it resolves the library at RUN
-/// time from `ORT_DYLIB_PATH`. ANVIL already bundles exactly one onnxruntime — Microsoft's
+/// time from `ORT_DYLIB_PATH`. Cleanroom already bundles exactly one onnxruntime — Microsoft's
 /// universal2 1.17.1, next to the sherpa diarization sidecar at `../Resources/sherpa/lib/` — and
 /// that single copy also serves the in-process `ort` session, so the bundle never carries two.
 #[cfg_attr(
@@ -114,7 +114,7 @@ struct AppInfo {
 #[tauri::command]
 fn app_info() -> AppInfo {
     AppInfo {
-        name: "ANVIL",
+        name: "Cleanroom",
         version: env!("CARGO_PKG_VERSION"),
         chain_version: anvil_core::CHAIN_VERSION,
         platform: anvil_core::platform::current().name(),
@@ -633,7 +633,7 @@ fn init_logging() -> Option<tracing_appender::non_blocking::WorkerGuard> {
 /// autostart — regardless of whether the user ever turned them on from Settings; each
 /// unregister call is idempotent, so running this unconditionally on every uninstall is
 /// safe even when nothing was ever registered. Never opens a window, never touches
-/// anything outside ANVIL's own keys (see `platform/windows.rs`'s module doc).
+/// anything outside Cleanroom's own keys (see `platform/windows.rs`'s module doc).
 pub fn uninstall_cleanup() {
     // NOT `let _ = ...` — that drops the `WorkerGuard` immediately, which can tear down
     // the non-blocking writer before the `tracing::info!`/`warn!` calls below ever reach
@@ -697,8 +697,8 @@ pub fn run() {
             // (the frontend isn't up yet) so `frontend_ready` flushes it into the UI. No-op
             // on macOS, where opens arrive as `RunEvent::Opened` instead of argv.
             route_open_paths(app.handle(), file_args_from_argv(std::env::args()));
-            // Upgrade hygiene: strip any orphaned pre-rename ANVIL shell integration so an
-            // in-place upgrade from an old ANVIL install doesn't leave dead registry entries.
+            // Upgrade hygiene: strip any orphaned pre-rename Cleanroom shell integration so an
+            // in-place upgrade from an old Cleanroom install doesn't leave dead registry entries.
             anvil_core::platform::remove_legacy_windows_identity();
             Ok(())
         })

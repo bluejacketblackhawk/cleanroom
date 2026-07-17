@@ -129,7 +129,7 @@ pub fn sherpa_pin() -> Option<&'static SidecarPin> {
 }
 
 /// The pinned `whisper-cli` sha256 for the current platform (`None` off the vendored platforms).
-/// The analogue of `anvil_media::sidecar::pinned_sha256`; unlike ffmpeg, ANVIL does not *enforce*
+/// The analogue of `anvil_media::sidecar::pinned_sha256`; unlike ffmpeg, Cleanroom does not *enforce*
 /// this at run time, but packaging and the bundled-layout test verify a staged binary against it.
 pub fn whisper_pinned_sha256() -> Option<&'static str> {
     whisper_pin().map(|p| p.binary_sha256)

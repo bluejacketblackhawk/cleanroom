@@ -1,6 +1,6 @@
 //! gguf model-pack manager (ADR-004 §Model packs).
 //!
-//! Enumerates the Qwen2.5-Instruct packs ANVIL knows how to run and reports which are
+//! Enumerates the Qwen2.5-Instruct packs Cleanroom knows how to run and reports which are
 //! **installed** — i.e. present as their `.gguf` file(s) in the models directory. Mirrors
 //! [`anvil_asr::model`], plus the sha256 verification the LLM packs need because they are
 //! multi-GB downloads that can silently truncate.
@@ -20,7 +20,7 @@
 //! Both shipping packs are pinned to their **canonical upstream** Qwen GGUF repos on Hugging
 //! Face (Apache-2.0), by real sha256. We pin upstream directly — the same posture
 //! `apps/desktop`'s models manager already uses for the whisper weights — rather than blocking
-//! the release on first mirroring the files to an ANVIL GitHub Release (the org/repo name is
+//! the release on first mirroring the files to an Cleanroom GitHub Release (the org/repo name is
 //! still an open owner decision, STATE.md). Mirroring later is a pure URL swap: the sha256
 //! pins do not change, so the integrity story is identical whoever hosts the bytes.
 //!
@@ -33,7 +33,7 @@
 //!
 //! ## Models directory resolution
 //! [`models_dirs`] returns the search path, first match wins:
-//! 1. `ANVIL_LLM_MODELS_DIR` environment variable (explicit dir),
+//! 1. `CLEANROOM_LLM_MODELS_DIR` environment variable (explicit dir),
 //! 2. a `models/` folder next to the current executable (bundled layout),
 //! 3. a `models/` folder in the current working directory (dev layout).
 
@@ -88,7 +88,7 @@ pub struct ModelPack {
 impl ModelPack {
     /// Whether **every** file in this pack has a download URL *and* a pinned hash — i.e. the
     /// models manager can fetch and verify the whole pack. Packs that are not provisioned can
-    /// still be used by pointing `ANVIL_LLM_MODEL` at a locally obtained gguf.
+    /// still be used by pointing `CLEANROOM_LLM_MODEL` at a locally obtained gguf.
     pub fn is_provisioned(&self) -> bool {
         !self.files.is_empty()
             && self
@@ -115,11 +115,11 @@ pub const DEFAULT_MODEL_ID: &str = "qwen2.5-7b-instruct-q4_k_m";
 /// The low-RAM pack (ADR-004): fits 8 GB machines, noticeably weaker shownotes.
 pub const LOW_RAM_MODEL_ID: &str = "qwen2.5-1.5b-instruct-q4_k_m";
 
-/// The catalog of gguf packs ANVIL knows how to run.
+/// The catalog of gguf packs Cleanroom knows how to run.
 ///
 /// Pinned to the canonical upstream Qwen repos (Apache-2.0) by real sha256 — the LFS object
 /// ids Hugging Face publishes, which are the files' sha256 (verified during provisioning).
-/// See the module docs for why we pin upstream rather than an ANVIL-hosted mirror, and how a
+/// See the module docs for why we pin upstream rather than an Cleanroom-hosted mirror, and how a
 /// split gguf is represented.
 pub const KNOWN_MODELS: &[ModelPack] = &[
     ModelPack {
@@ -200,7 +200,7 @@ pub fn find_pack(id: &str) -> Option<&'static ModelPack> {
 /// returned, in priority order; the list may be empty if none exist yet.
 pub fn models_dirs() -> Vec<PathBuf> {
     let mut out = Vec::new();
-    if let Some(explicit) = std::env::var_os("ANVIL_LLM_MODELS_DIR") {
+    if let Some(explicit) = std::env::var_os("CLEANROOM_LLM_MODELS_DIR") {
         out.push(PathBuf::from(explicit));
     }
     if let Ok(exe) = std::env::current_exe() {

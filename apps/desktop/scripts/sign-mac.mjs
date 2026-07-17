@@ -32,7 +32,7 @@
 //     sibling onnxruntime dylib with the SAME team identity, hardened-runtime library validation
 //     accepts the (now same-team) dylib, so no disable-library-validation is needed on the sidecar.
 //     `verify` proves this by spawning the signed sidecar env-free (verify-mac-bundle.mjs).
-//   * Identity: --identity flag > $ANVIL_SIGN_IDENTITY > auto-detect the first "Developer ID
+//   * Identity: --identity flag > $CLEANROOM_SIGN_IDENTITY > auto-detect the first "Developer ID
 //     Application" from `security find-identity -v -p codesigning` (its SHA-1 hash, unambiguous).
 //
 // spctl INTERPRETATION (do not misread the signing-half output):
@@ -55,7 +55,7 @@
 //                 signed DMG and prints the exact remaining owner command)
 // options:
 //   --target <triple|arch>   aarch64|arm64|x86_64|x64 | full *-apple-darwin triple | all  (default: all)
-//   --identity <id>          signing identity override (else $ANVIL_SIGN_IDENTITY else auto-detect)
+//   --identity <id>          signing identity override (else $CLEANROOM_SIGN_IDENTITY else auto-detect)
 //   --profile <name>         notarytool keychain profile (default: anvil-notary)
 //   --wait                   pass --wait to notarytool (block until the verdict)
 //   --app <path> / --dmg <path>   operate on an explicit artifact (skips --target resolution)
@@ -88,7 +88,7 @@ const productName = conf.productName ?? "Cleanroom";
 
 // codesign contacts Apple's timestamp server (and, on first key use, may raise a keychain
 // authorization dialog). Bound every signing call so a blocked prompt is reported, never spun on.
-const SIGN_TIMEOUT_MS = Number(process.env.ANVIL_SIGN_TIMEOUT_MS || 120000);
+const SIGN_TIMEOUT_MS = Number(process.env.CLEANROOM_SIGN_TIMEOUT_MS || 120000);
 
 // --- tiny output helpers ----------------------------------------------------------------------
 const C = { cyan: "\x1b[36m", green: "\x1b[32m", red: "\x1b[31m", yellow: "\x1b[33m", dim: "\x1b[2m", off: "\x1b[0m" };
@@ -135,7 +135,7 @@ const archLabel = (triple) => (/x86_64/.test(triple) ? "x64" : "aarch64");
 
 // --- artifact locators ------------------------------------------------------------------------
 // The bundle dir can hold STALE bundles from before a productName rename (observed in practice:
-// a leftover ANVIL.app next to Cleanroom.app, and "first .app in the dir" picked the stale one —
+// a leftover Cleanroom.app next to Cleanroom.app, and "first .app in the dir" picked the stale one —
 // so sign/verify/dmg all silently operated on the WRONG bundle). Selection is therefore
 // deterministic: exactly `<productName>.app` per tauri.conf.json. Strays next to it are warned
 // about; a dir holding ONLY foreign .apps is a hard error, never a guess. --app still overrides.
@@ -175,9 +175,9 @@ function findDmg(triple, explicit) {
 let cachedIdentity = null;
 function resolveIdentity(flag) {
   if (cachedIdentity) return cachedIdentity;
-  const override = flag || process.env.ANVIL_SIGN_IDENTITY;
+  const override = flag || process.env.CLEANROOM_SIGN_IDENTITY;
   if (override) {
-    cachedIdentity = { id: override, name: override, source: flag ? "--identity" : "$ANVIL_SIGN_IDENTITY" };
+    cachedIdentity = { id: override, name: override, source: flag ? "--identity" : "$CLEANROOM_SIGN_IDENTITY" };
     return cachedIdentity;
   }
   const r = cap("security", ["find-identity", "-v", "-p", "codesigning"]);
@@ -186,7 +186,7 @@ function resolveIdentity(flag) {
   if (!line) {
     die(
       "no \"Developer ID Application\" identity in the login keychain.\n" +
-        "  Install one from the Apple Developer portal, or pass --identity / $ANVIL_SIGN_IDENTITY.\n" +
+        "  Install one from the Apple Developer portal, or pass --identity / $CLEANROOM_SIGN_IDENTITY.\n" +
         `  security find-identity said:\n${r.out}`,
     );
   }

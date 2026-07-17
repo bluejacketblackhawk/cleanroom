@@ -1,6 +1,6 @@
 [package]
 name = "anvil-desktop"
-description = "ANVIL desktop app (Tauri 2 shell): Tauri commands, the job bridge, and the React UI host."
+description = "Cleanroom desktop app (Tauri 2 shell): Tauri commands, the job bridge, and the React UI host."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

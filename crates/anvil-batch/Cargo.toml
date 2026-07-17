@@ -1,6 +1,6 @@
 [package]
 name = "anvil-batch"
-description = "ANVIL batch + watch-folder engine (04 §S4/S5): a queue that masters files with per-file isolation, N-1-core concurrency, and progress events, plus watch rules."
+description = "Cleanroom batch + watch-folder engine (04 §S4/S5): a queue that masters files with per-file isolation, N-1-core concurrency, and progress events, plus watch rules."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

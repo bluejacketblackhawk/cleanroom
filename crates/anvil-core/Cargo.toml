@@ -1,6 +1,6 @@
 [package]
 name = "anvil-core"
-description = "ANVIL core: session/project model, processing graph, job system, and the platform abstraction (ADR-006)."
+description = "Cleanroom core: session/project model, processing graph, job system, and the platform abstraction (ADR-006)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

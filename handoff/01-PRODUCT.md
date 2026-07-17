@@ -2,7 +2,7 @@
 
 ## Vision
 
-Every podcaster deserves broadcast-quality audio without a subscription, an upload, or an audio-engineering degree. ANVIL is a free, MIT-licensed desktop app for Windows and macOS that does what Auphonic and Adobe Podcast do — and more — entirely on the user's machine.
+Every podcaster deserves broadcast-quality audio without a subscription, an upload, or an audio-engineering degree. Cleanroom is a free, MIT-licensed desktop app for Windows and macOS that does what Auphonic and Adobe Podcast do — and more — entirely on the user's machine.
 
 ## The wedge
 
@@ -10,7 +10,7 @@ Every podcaster deserves broadcast-quality audio without a subscription, an uplo
 
 Why this wins:
 
-| Axis | Auphonic | Adobe Podcast | ANVIL |
+| Axis | Auphonic | Adobe Podcast | Cleanroom |
 |---|---|---|---|
 | Price | $11–89/mo (2 free h/mo) | $9.99/mo Premium (free: 1 h/day, 30-min files) | **Free forever, MIT** |
 | Where audio goes | Their servers | Adobe's servers | **Never leaves the machine** |
@@ -49,7 +49,7 @@ Verified July 2026 (re-verify at launch; sources at bottom):
 
 Every row lands in a milestone (M#, see 05) or is explicitly deferred with reason. ✦ = we exceed the competitor.
 
-| # | Feature (competitor) | ANVIL | Milestone |
+| # | Feature (competitor) | Cleanroom | Milestone |
 |---|---|---|---|
 | P1 | Loudness normalization, target presets, true-peak limit (Auphonic) | Two-pass EBU R128 + presets + TP limiter ✦ (bit-accurate, verifiable report) | M1 |
 | P2 | Adaptive Leveler (Auphonic) | Speech-gated adaptive leveler, music-aware, dynamics-preservation control | M1 |
@@ -91,7 +91,7 @@ Priority: ★★★ = wedge-adjacent, in v1.0; ★★ = v1.0 if lanes stay green
 7. ★★ **Recording Guard.** Live mic monitor (tray): clipping, noise floor, echo warning *before* you record an hour of garbage. Local answer to Mic Check. (M4)
 8. ★★ **Double-ender sync.** Cross-correlation alignment of separately recorded tracks (remote interviews). (M4)
 9. ★★ **De-clip rescue.** Recover clipped recordings — the "my best take is ruined" saver. (M4)
-10. ★★ **Shell integration.** Right-click any audio file in Explorer/Finder → "Master with ANVIL" → mastered copy appears alongside. (M2 Win, M6 Mac)
+10. ★★ **Shell integration.** Right-click any audio file in Explorer/Finder → "Master with Cleanroom" → mastered copy appears alongside. (M2 Win, M6 Mac)
 11. ★★ **Sound-version pinning.** Projects record chain+model versions; re-renders are bit-identical forever; "sound updates" are opt-in per show. Mid-season consistency nobody else guarantees. (M1 architecture)
 12. ★ **Local REST daemon** (`anvild`) for NAS/automation folks. ★ **Linux build** (Tauri makes it cheap; huge OSS goodwill). ★ **Episode assembly** (intro/outro/bed insertion with auto-ducking from a template). ★ **Translation/dubbing.** All post-1.0.
 
@@ -101,7 +101,7 @@ No recording/DAW/multitrack *editing* (we cut silence/fillers, we don't arrange)
 
 ## Naming
 
-Codename **ANVIL** everywhere internally. Final name = owner decision before M7 (candidates + trademark screen task in 07). Hard constraints: not "Speechify" (existing TTS company), nothing confusable with Sound Forge/Adobe/Auphonic; must have a free GitHub org name; prefer a name that signals local/private/mastering.
+Codename **Cleanroom** everywhere internally. Final name = owner decision before M7 (candidates + trademark screen task in 07). Hard constraints: not "Speechify" (existing TTS company), nothing confusable with Sound Forge/Adobe/Auphonic; must have a free GitHub org name; prefer a name that signals local/private/mastering.
 
 ## Launch plan (M7, OSS motion — no ad budget)
 

@@ -121,5 +121,5 @@ real Mac and record results. After that: the two ports are at parity and it's on
 
 ## Still-open owner decisions that touch M6
 - Apple Developer Program ($99/yr) — required for signing/notarization above.
-- Final product name (the app shows "ANVIL"; repo is `anvil` — rename if it changes).
+- Final product name (the app shows "Cleanroom"; repo is `anvil` — rename if it changes).
 - Code-signing approach on Windows (SignPath OSS vs Azure Trusted Signing) — parallel decision.

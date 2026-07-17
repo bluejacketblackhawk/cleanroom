@@ -2,7 +2,7 @@
 //!
 //! ## Why a sidecar and not `sherpa-rs` / `ort`
 //! ADR-004 specifies the pipeline (*pyannote segmentation → speaker embeddings → clustering*)
-//! but not how it is hosted. ANVIL runs it as an external
+//! but not how it is hosted. Cleanroom runs it as an external
 //! `sherpa-onnx-offline-speaker-diarization` child process, exactly as it runs `whisper-cli`
 //! ([`crate::sidecar`]) and ffmpeg ([`anvil_media`]). The alternatives were weighed and
 //! rejected:
@@ -20,7 +20,7 @@
 //!   the ASR lane already made with whisper.cpp.
 //!
 //! ## Airplane-mode (ADR-005 engine invariant)
-//! Nothing here touches the network. The sidecar binary must already be present (`ANVIL_DIARIZE`,
+//! Nothing here touches the network. The sidecar binary must already be present (`CLEANROOM_DIARIZE`,
 //! bundled next to the app, or on `PATH`) and both ONNX models must already be on disk (see
 //! [`crate::model`], which carries their SHA-256s for a one-time, up-front, user-initiated
 //! download).
@@ -72,7 +72,7 @@ pub struct Speaker {
 /// A contiguous stretch of audio attributed to one speaker, in **seconds**.
 ///
 /// Segments are sorted by `start`. They may overlap: the segmentation model is genuinely
-/// capable of saying two people were talking at once, and ANVIL does not flatten that away.
+/// capable of saying two people were talking at once, and Cleanroom does not flatten that away.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpeakerSegment {
     /// The [`Speaker::id`] talking.
@@ -112,10 +112,10 @@ pub struct DiarizeOptions {
     /// `n`. Pass `Some(2)` for a host+guest interview — knowing the count is the single
     /// biggest accuracy win available.
     pub num_speakers: Option<usize>,
-    /// Explicit segmentation `.onnx`. `None` resolves from `ANVIL_DIARIZE_SEG_MODEL`, then the
+    /// Explicit segmentation `.onnx`. `None` resolves from `CLEANROOM_DIARIZE_SEG_MODEL`, then the
     /// catalog default installed in the models dir.
     pub segmentation_model: Option<PathBuf>,
-    /// Explicit speaker-embedding `.onnx`. `None` resolves from `ANVIL_DIARIZE_EMB_MODEL`, then
+    /// Explicit speaker-embedding `.onnx`. `None` resolves from `CLEANROOM_DIARIZE_EMB_MODEL`, then
     /// the catalog default installed in the models dir.
     pub embedding_model: Option<PathBuf>,
     /// Cosine-distance cut for auto speaker counting. Ignored when
@@ -153,7 +153,7 @@ pub struct DiarizeSidecar {
 
 impl DiarizeSidecar {
     /// Locate the sidecar without touching the network. Search order:
-    /// 1. `ANVIL_DIARIZE` environment variable (explicit path),
+    /// 1. `CLEANROOM_DIARIZE` environment variable (explicit path),
     /// 2. a bundled sidecar next to the current executable (`…`, `sidecar/…`, `sherpa/…`, and —
     ///    for a macOS `.app` — `../Resources/sherpa/bin/…`; the mac sherpa bundle keeps its
     ///    `bin/` + `lib/` sibling structure, so the exe lives under a `bin/` subdir there,
@@ -169,8 +169,8 @@ impl DiarizeSidecar {
             return Self::from_path(found);
         }
         Err(AsrError::SidecarNotFound(
-            "no bundled sherpa-onnx-offline-speaker-diarization, ANVIL_DIARIZE unset, and it is \
-             not on PATH (airplane-mode: ANVIL never auto-downloads it)"
+            "no bundled sherpa-onnx-offline-speaker-diarization, CLEANROOM_DIARIZE unset, and it is \
+             not on PATH (airplane-mode: Cleanroom never auto-downloads it)"
                 .into(),
         ))
     }
@@ -198,7 +198,7 @@ impl DiarizeSidecar {
 
     fn candidates() -> Vec<PathBuf> {
         let mut out = Vec::new();
-        if let Some(explicit) = std::env::var_os("ANVIL_DIARIZE") {
+        if let Some(explicit) = std::env::var_os("CLEANROOM_DIARIZE") {
             out.push(PathBuf::from(explicit));
         }
         if let Ok(exe) = std::env::current_exe() {
@@ -233,12 +233,12 @@ impl DiarizeSidecar {
         }
         let segmentation = resolve_diar_model(
             opts.segmentation_model.as_deref(),
-            "ANVIL_DIARIZE_SEG_MODEL",
+            "CLEANROOM_DIARIZE_SEG_MODEL",
             DiarModelKind::Segmentation,
         )?;
         let embedding = resolve_diar_model(
             opts.embedding_model.as_deref(),
-            "ANVIL_DIARIZE_EMB_MODEL",
+            "CLEANROOM_DIARIZE_EMB_MODEL",
             DiarModelKind::Embedding,
         )?;
 
@@ -567,7 +567,7 @@ fn prepare_audio(audio: &Path) -> Result<PreparedAudio, AsrError> {
 
     let ffmpeg = locate_ffmpeg().ok_or_else(|| {
         AsrError::AudioUnsupported(format!(
-            "{} is not 16 kHz mono 16-bit PCM WAV, and ffmpeg (ANVIL_FFMPEG / bundled / PATH) \
+            "{} is not 16 kHz mono 16-bit PCM WAV, and ffmpeg (CLEANROOM_FFMPEG / bundled / PATH) \
              was not found to convert it. The diarization sidecar does not resample.",
             audio.display()
         ))
@@ -665,11 +665,11 @@ fn read_prefix(path: &Path, max: usize) -> std::io::Result<Vec<u8>> {
     Ok(buf)
 }
 
-/// Find ffmpeg the same way [`anvil_media`] does, without depending on it: `ANVIL_FFMPEG`, then
+/// Find ffmpeg the same way [`anvil_media`] does, without depending on it: `CLEANROOM_FFMPEG`, then
 /// bundled next to the executable, then `PATH`.
 fn locate_ffmpeg() -> Option<PathBuf> {
     let name = format!("ffmpeg{}", std::env::consts::EXE_SUFFIX);
-    if let Some(explicit) = std::env::var_os("ANVIL_FFMPEG") {
+    if let Some(explicit) = std::env::var_os("CLEANROOM_FFMPEG") {
         let path = PathBuf::from(explicit);
         if path.is_file() {
             return Some(path);

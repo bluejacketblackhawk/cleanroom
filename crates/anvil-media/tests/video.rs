@@ -19,7 +19,7 @@ fn tmp_dir() -> PathBuf {
 /// panicking) if none of the candidate encoders are available, so the caller can skip cleanly.
 ///
 /// The encoder is deliberately **not** libx264: that is a GPL component absent from the LGPL
-/// build ANVIL ships (see `sidecar::FFMPEG_PINS`), so a fixture that required it would only ever
+/// build Cleanroom ships (see `sidecar::FFMPEG_PINS`), so a fixture that required it would only ever
 /// run on a developer's GPL ffmpeg and silently skip against the real shipping binary. We build
 /// the source with an LGPL/OS **H.264** encoder instead — `libopenh264`, then Media Foundation
 /// (Windows), then VideoToolbox (macOS) — so the remux path is exercised on the build that

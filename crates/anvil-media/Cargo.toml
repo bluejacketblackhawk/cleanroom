@@ -1,6 +1,6 @@
 [package]
 name = "anvil-media"
-description = "ANVIL media IO (ADR-005): decode/encode/metadata/video, and the internal planar-f32 audio buffer."
+description = "Cleanroom media IO (ADR-005): decode/encode/metadata/video, and the internal planar-f32 audio buffer."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

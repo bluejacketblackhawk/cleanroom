@@ -6,7 +6,7 @@
 
 ## Context
 
-ANVIL processes audio from diverse sources (podcasts, voiceovers, video) in many formats (WAV, FLAC, MP3, AAC, OGG, ALAC, MP4, MOV, MKV, WebM). Some formats require specific decoders (mp3 = libmpg123, aac = external). Encoding must produce artifact-free output while avoiding patent/licensing complexity. Metadata and chapters must round-trip without loss. Video processing must preserve video tracks during audio mastering.
+Cleanroom processes audio from diverse sources (podcasts, voiceovers, video) in many formats (WAV, FLAC, MP3, AAC, OGG, ALAC, MP4, MOV, MKV, WebM). Some formats require specific decoders (mp3 = libmpg123, aac = external). Encoding must produce artifact-free output while avoiding patent/licensing complexity. Metadata and chapters must round-trip without loss. Video processing must preserve video tracks during audio mastering.
 
 ## Decision
 

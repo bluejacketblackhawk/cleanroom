@@ -3,7 +3,7 @@
     Provision the pinned sherpa-onnx speaker-diarization sidecar + its two default models.
 
 .DESCRIPTION
-    ANVIL is MIT and runs sherpa-onnx as a SIDECAR PROCESS (never linked). This script fetches
+    Cleanroom is MIT and runs sherpa-onnx as a SIDECAR PROCESS (never linked). This script fetches
     exactly the build + models named in scripts/sherpa-pin.json and refuses anything else:
 
       1. downloads the sherpa 'shared' Windows archive, verifies its sha256,
@@ -28,7 +28,7 @@
 
 .EXAMPLE
     pwsh -File scripts/fetch-sherpa.ps1
-    $env:ANVIL_DIARIZE = "$PWD\vendor\sherpa\windows-x86_64\sherpa-onnx-offline-speaker-diarization.exe"
+    $env:CLEANROOM_DIARIZE = "$PWD\vendor\sherpa\windows-x86_64\sherpa-onnx-offline-speaker-diarization.exe"
 #>
 [CmdletBinding()]
 param(

@@ -1,6 +1,6 @@
 //! Core error type shared across the engine.
 
-/// Errors surfaced by the ANVIL core and the crates layered on it.
+/// Errors surfaced by the Cleanroom core and the crates layered on it.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("I/O error: {0}")]

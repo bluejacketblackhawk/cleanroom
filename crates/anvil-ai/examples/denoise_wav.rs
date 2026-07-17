@@ -16,7 +16,7 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 4 {
         eprintln!("usage: denoise_wav <in.wav> <out.wav> <fast|standard|studio> [strength]");
-        eprintln!("  env: ANVIL_PF=<beta> ANVIL_DEREVERB=<0..1> ANVIL_DEVICE=cpu  (tuning knobs)");
+        eprintln!("  env: CLEANROOM_PF=<beta> CLEANROOM_DEREVERB=<0..1> CLEANROOM_DEVICE=cpu  (tuning knobs)");
         std::process::exit(2);
     }
     let (input, output, tier_s) = (&args[1], &args[2], args[3].as_str());
@@ -56,8 +56,10 @@ fn main() {
     let mut denoiser = Denoiser::try_with_tier(channels, cfg, tier).expect("build denoiser");
 
     // Tuning knobs for the DNSMOS sweeps. Not part of the shipping API.
-    let pf: Option<f32> = std::env::var("ANVIL_PF").ok().map(|v| v.parse().unwrap());
-    let dr: Option<f32> = std::env::var("ANVIL_DEREVERB")
+    let pf: Option<f32> = std::env::var("CLEANROOM_PF")
+        .ok()
+        .map(|v| v.parse().unwrap());
+    let dr: Option<f32> = std::env::var("CLEANROOM_DEREVERB")
         .ok()
         .map(|v| v.parse().unwrap());
     if pf.is_some() || dr.is_some() {

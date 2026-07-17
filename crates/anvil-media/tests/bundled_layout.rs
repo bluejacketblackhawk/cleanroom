@@ -1,12 +1,12 @@
 //! Proof that a **clean install** - the app exe with the bundled ffmpeg sidecar next to it and
-//! no `ANVIL_*` environment at all - resolves ffmpeg exe-relative and passes the hash pin.
+//! no `CLEANROOM_*` environment at all - resolves ffmpeg exe-relative and passes the hash pin.
 //!
 //! This is the release-shape check for the packaging lane: `tauri.conf.json`'s
 //! `bundle.resources` and `package-portable.mjs` both drop the vendored `ffmpeg/ffmpeg.exe`
 //! into a `ffmpeg/` folder beside the executable, and [`FfmpegSidecar::locate`] must find it
 //! there with zero configuration. We verify that by building a throwaway "install" directory
 //! and **re-executing this very test binary from inside it** (so `std::env::current_exe()` - the
-//! anchor `locate()` uses - points at the fake install), with every `ANVIL_*` variable stripped.
+//! anchor `locate()` uses - points at the fake install), with every `CLEANROOM_*` variable stripped.
 //!
 //! On macOS the app is a `.app` bundle, where the sidecar lives under `Contents/Resources/ffmpeg/`
 //! rather than next to the executable; [`app_bundle_resources_layout_resolves_ffmpeg_env_free`]
@@ -20,14 +20,14 @@ use std::process::Command;
 
 /// Set on the re-executed child to switch [`probe_locate_ffmpeg`] from "no-op suite member" to
 /// "resolve the bundled sidecar and report".
-const PROBE_ENV: &str = "ANVIL_MEDIA_BUNDLED_PROBE";
+const PROBE_ENV: &str = "CLEANROOM_MEDIA_BUNDLED_PROBE";
 
 /// The vendored ffmpeg this machine would bundle, or `None` if not provisioned. Mirrors what
 /// packaging copies next to the app. Resolves the per-platform vendor dir
 /// (`vendor/ffmpeg/<os>-<arch>/`), so this is Windows' `windows-x86_64` and macOS'
 /// `macos-aarch64` / `macos-x86_64` without hard-coding either.
 fn vendored_ffmpeg() -> Option<PathBuf> {
-    if let Some(explicit) = std::env::var_os("ANVIL_FFMPEG") {
+    if let Some(explicit) = std::env::var_os("CLEANROOM_FFMPEG") {
         let p = PathBuf::from(explicit);
         if p.is_file() {
             return Some(p);
@@ -43,7 +43,7 @@ fn vendored_ffmpeg() -> Option<PathBuf> {
 
 /// The child half of the re-exec. In a normal `cargo test` run [`PROBE_ENV`] is unset and this
 /// returns immediately. When the test re-runs this binary from the fake install with
-/// [`PROBE_ENV`] set, it resolves ffmpeg with no `ANVIL_*` help and reports the path (or fails).
+/// [`PROBE_ENV`] set, it resolves ffmpeg with no `CLEANROOM_*` help and reports the path (or fails).
 #[test]
 fn probe_locate_ffmpeg() {
     if std::env::var_os(PROBE_ENV).is_none() {
@@ -87,7 +87,7 @@ fn clean_install_layout_resolves_ffmpeg_env_free() {
         .join(format!("ffmpeg{}", std::env::consts::EXE_SUFFIX));
     std::fs::copy(&ffmpeg, &bundled).expect("copy bundled ffmpeg");
 
-    // Re-run ONLY the probe test, from inside the install, with every ANVIL_* var removed so the
+    // Re-run ONLY the probe test, from inside the install, with every CLEANROOM_* var removed so the
     // only way locate() can succeed is the exe-relative `ffmpeg/` folder.
     let mut cmd = Command::new(&app);
     cmd.args([
@@ -97,7 +97,7 @@ fn clean_install_layout_resolves_ffmpeg_env_free() {
         "--test-threads=1",
     ]);
     for (k, _) in std::env::vars() {
-        if k.starts_with("ANVIL_") {
+        if k.starts_with("CLEANROOM_") {
             cmd.env_remove(k);
         }
     }
@@ -151,7 +151,7 @@ fn app_bundle_resources_layout_resolves_ffmpeg_env_free() {
     let bundled = res_dir.join("ffmpeg");
     std::fs::copy(&ffmpeg, &bundled).expect("copy bundled ffmpeg");
 
-    // Re-run ONLY the probe test from inside the bundle with every ANVIL_* var removed, so the only
+    // Re-run ONLY the probe test from inside the bundle with every CLEANROOM_* var removed, so the only
     // way locate() can succeed is the exe-relative `../Resources/ffmpeg/` fallback.
     let mut cmd = Command::new(&app);
     cmd.args([
@@ -161,7 +161,7 @@ fn app_bundle_resources_layout_resolves_ffmpeg_env_free() {
         "--test-threads=1",
     ]);
     for (k, _) in std::env::vars() {
-        if k.starts_with("ANVIL_") {
+        if k.starts_with("CLEANROOM_") {
             cmd.env_remove(k);
         }
     }

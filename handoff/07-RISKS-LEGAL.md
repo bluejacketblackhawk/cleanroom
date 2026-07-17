@@ -37,7 +37,7 @@ Use an **LGPL-only build** (no `--enable-gpl` components: no x264/x265/etc., no 
 
 ## 4. Naming & trademark
 
-- Folder is `speechify` — **Speechify is an existing TTS company; cannot be the product name.** Codename ANVIL internally.
+- Folder is `speechify` — **Speechify is an existing TTS company; cannot be the product name.** Codename Cleanroom internally.
 - M7 task: candidate list → knockout search (USPTO TESS quick screen, GitHub/npm/domain availability, podcast-tool name collisions). Candidates to seed: Mainroom, ClearTake, Loudline, Masterly, StudioZero, Hearth Audio, LocalCast. Non-commercial OSS lowers (not eliminates) trademark risk — avoid anything confusable with Sound Forge, Auphonic, Adobe, Descript.
 - Public copy never says "X killer"; benchmarks presented reproducibly (eval repo) and respectfully.
 

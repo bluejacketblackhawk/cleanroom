@@ -33,27 +33,27 @@ class _FakeCompletedProcess:
 
 def test_resolve_prefers_explicit_path(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(anvil_cli.shutil, "which", lambda cmd: f"/resolved/{cmd}")
-    monkeypatch.setenv("ANVIL_BIN", "env-anvil")
+    monkeypatch.setenv("CLEANROOM_BIN", "env-anvil")
     assert resolve_anvil_bin("explicit-anvil") == "/resolved/explicit-anvil"
 
 
 def test_resolve_falls_back_to_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(anvil_cli.shutil, "which", lambda cmd: f"/resolved/{cmd}")
-    monkeypatch.setenv("ANVIL_BIN", "env-anvil")
+    monkeypatch.setenv("CLEANROOM_BIN", "env-anvil")
     assert resolve_anvil_bin(None) == "/resolved/env-anvil"
 
 
 def test_resolve_env_var_as_plain_file_path(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    # ANVIL_BIN given as a path that `which` can't resolve but exists as a file.
+    # CLEANROOM_BIN given as a path that `which` can't resolve but exists as a file.
     fake_bin = tmp_path / "anvil-custom"
     fake_bin.write_bytes(b"")
     monkeypatch.setattr(anvil_cli.shutil, "which", lambda cmd: None)
-    monkeypatch.setenv("ANVIL_BIN", str(fake_bin))
+    monkeypatch.setenv("CLEANROOM_BIN", str(fake_bin))
     assert resolve_anvil_bin(None) == str(fake_bin)
 
 
 def test_resolve_falls_back_to_path(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("ANVIL_BIN", raising=False)
+    monkeypatch.delenv("CLEANROOM_BIN", raising=False)
 
     def fake_which(cmd: str) -> str | None:
         return "/usr/bin/anvil" if cmd == "anvil" else None
@@ -63,7 +63,7 @@ def test_resolve_falls_back_to_path(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_resolve_falls_back_to_cargo_build_dir(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.delenv("ANVIL_BIN", raising=False)
+    monkeypatch.delenv("CLEANROOM_BIN", raising=False)
     monkeypatch.setattr(anvil_cli.shutil, "which", lambda cmd: None)
     monkeypatch.setattr(anvil_cli, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(anvil_cli, "_BIN_NAMES", ("anvil.exe",))
@@ -77,7 +77,7 @@ def test_resolve_falls_back_to_cargo_build_dir(monkeypatch: pytest.MonkeyPatch, 
 
 
 def test_resolve_returns_none_when_nothing_found(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.delenv("ANVIL_BIN", raising=False)
+    monkeypatch.delenv("CLEANROOM_BIN", raising=False)
     monkeypatch.setattr(anvil_cli.shutil, "which", lambda cmd: None)
     monkeypatch.setattr(anvil_cli, "REPO_ROOT", tmp_path)  # empty dir, no target/
     assert resolve_anvil_bin(None) is None

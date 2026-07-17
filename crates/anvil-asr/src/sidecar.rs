@@ -1,12 +1,12 @@
 //! whisper.cpp sidecar manager.
 //!
-//! whisper.cpp is **never linked** into ANVIL (no `whisper-rs`, no bindgen/MSVC hurdle) — it
+//! whisper.cpp is **never linked** into Cleanroom (no `whisper-rs`, no bindgen/MSVC hurdle) — it
 //! is run as a separate `whisper-cli` child process, mirroring [`anvil_media::FfmpegSidecar`].
 //! This keeps the engine build fast and portable: we only invoke an unmodified whisper.cpp
 //! CLI at arm's length.
 //!
 //! Airplane-mode (ADR-005 engine invariant): this module **never downloads** anything. The
-//! binary must already be present — pointed at by `ANVIL_WHISPER`, bundled next to the app,
+//! binary must already be present — pointed at by `CLEANROOM_WHISPER`, bundled next to the app,
 //! or on `PATH` — and the model must already be on disk (see [`crate::model`]).
 //!
 //! ## Transcription recipe
@@ -64,7 +64,7 @@ pub struct TranscribeOptions {
     /// Language to decode (default [`Language::Auto`]).
     pub language: Language,
     /// Explicit model `.bin` path. When `None`, the model is resolved from
-    /// `ANVIL_WHISPER_MODEL`, then the first installed model in the models dir.
+    /// `CLEANROOM_WHISPER_MODEL`, then the first installed model in the models dir.
     pub model: Option<PathBuf>,
     /// Thread count for whisper's `-t` flag. `None` leaves whisper's default.
     pub threads: Option<usize>,
@@ -78,7 +78,7 @@ pub struct WhisperSidecar {
 
 impl WhisperSidecar {
     /// Locate `whisper-cli` without touching the network. Search order:
-    /// 1. `ANVIL_WHISPER` environment variable (explicit path),
+    /// 1. `CLEANROOM_WHISPER` environment variable (explicit path),
     /// 2. a bundled sidecar next to the current executable (`whisper-cli`, `sidecar/…`,
     ///    `whisper/…`, and — for a macOS `.app`, where the exe is in `Contents/MacOS/` and
     ///    Tauri drops resources in `Contents/Resources/` — `../Resources/whisper/…`),
@@ -96,8 +96,8 @@ impl WhisperSidecar {
             return Self::from_path(found);
         }
         Err(AsrError::SidecarNotFound(
-            "no bundled sidecar, ANVIL_WHISPER unset, and whisper-cli not on PATH \
-             (airplane-mode: ANVIL never auto-downloads it)"
+            "no bundled sidecar, CLEANROOM_WHISPER unset, and whisper-cli not on PATH \
+             (airplane-mode: Cleanroom never auto-downloads it)"
                 .into(),
         ))
     }
@@ -124,7 +124,7 @@ impl WhisperSidecar {
 
     fn candidates() -> Vec<PathBuf> {
         let mut out = Vec::new();
-        if let Some(explicit) = std::env::var_os("ANVIL_WHISPER") {
+        if let Some(explicit) = std::env::var_os("CLEANROOM_WHISPER") {
             out.push(PathBuf::from(explicit));
         }
         if let Ok(exe) = std::env::current_exe() {
@@ -155,7 +155,7 @@ impl WhisperSidecar {
 
     /// Transcribe `audio` into a [`Transcript`] with word-level timestamps.
     ///
-    /// The model is resolved (in order) from `opts.model`, `ANVIL_WHISPER_MODEL`, then the
+    /// The model is resolved (in order) from `opts.model`, `CLEANROOM_WHISPER_MODEL`, then the
     /// first installed model in the models dir; a missing model yields
     /// [`AsrError::ModelNotFound`]. `audio` should be a file whisper reads (ideally a 16 kHz
     /// mono WAV — see the module docs).
@@ -242,7 +242,7 @@ pub fn transcribe(audio: &Path, opts: &TranscribeOptions) -> Result<Transcript, 
     WhisperSidecar::locate()?.transcribe(audio, opts)
 }
 
-/// Resolve the model path: explicit `opts.model` wins, then `ANVIL_WHISPER_MODEL`, then the
+/// Resolve the model path: explicit `opts.model` wins, then `CLEANROOM_WHISPER_MODEL`, then the
 /// first model installed in the models dir. Never downloads.
 fn resolve_model(opts: &TranscribeOptions) -> Result<PathBuf, AsrError> {
     if let Some(model) = &opts.model {
@@ -251,7 +251,7 @@ fn resolve_model(opts: &TranscribeOptions) -> Result<PathBuf, AsrError> {
         }
         return Err(AsrError::ModelNotFound(model.display().to_string()));
     }
-    if let Some(env) = std::env::var_os("ANVIL_WHISPER_MODEL") {
+    if let Some(env) = std::env::var_os("CLEANROOM_WHISPER_MODEL") {
         let path = PathBuf::from(env);
         if path.is_file() {
             return Ok(path);
@@ -262,7 +262,7 @@ fn resolve_model(opts: &TranscribeOptions) -> Result<PathBuf, AsrError> {
         return Ok(installed.path);
     }
     Err(AsrError::ModelNotFound(
-        "no model given, ANVIL_WHISPER_MODEL unset, and no ggml-*.bin in the models dir".into(),
+        "no model given, CLEANROOM_WHISPER_MODEL unset, and no ggml-*.bin in the models dir".into(),
     ))
 }
 
@@ -382,7 +382,7 @@ fn word_confidence(tokens: &[WhisperToken]) -> f32 {
 
 /// Group ordered [`Word`]s into [`Segment`]s. A segment ends after a word whose text ends in
 /// sentence punctuation (`. ! ?`), or before a silence gap wider than [`SEGMENT_GAP_SECS`].
-/// Because `-ml 1 -sow` collapses whisper's own segmentation to one-word-per-entry, ANVIL
+/// Because `-ml 1 -sow` collapses whisper's own segmentation to one-word-per-entry, Cleanroom
 /// reconstructs sentence-level segments here rather than paying for a second whisper pass.
 fn derive_segments(words: &[Word]) -> Vec<Segment> {
     let mut segments = Vec::new();

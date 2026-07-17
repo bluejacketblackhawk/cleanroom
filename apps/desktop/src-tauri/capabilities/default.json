@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Core capability for the main ANVIL window.",
+  "description": "Core capability for the main Cleanroom window.",
   "windows": ["main"],
   "permissions": [
     "core:default",

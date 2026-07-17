@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ANVIL eval harness runner (dev-only — never shipped).
+"""Cleanroom eval harness runner (dev-only — never shipped).
 
 The eval harness is the referee for every DSP/AI decision (handoff/06-QUALITY-EVAL.md).
 It is built in M0-M1 *before* the processing chain is tuned. M0 established the corpus
@@ -142,7 +142,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 #
 # M0 exit gate (handoff/06-QUALITY-EVAL.md §2 loudness row): `anvil analyze <file>
 # --json` must match ffmpeg's ebur128 measurement within +/-0.1 LU on 10 fixtures.
-# ANVIL measurement JSON shape this command expects (see load_anvil_measurements):
+# Cleanroom measurement JSON shape this command expects (see load_anvil_measurements):
 # a JSON object keyed by fixture id, each value shaped like `LoudnessMeasurement` —
 #   {"<fixture-id>": {"integrated_lufs": -16.03, "true_peak_dbtp": -3.02,
 #                      "loudness_range_lu": 1.10}, ...}
@@ -851,7 +851,7 @@ def cmd_master_eval(args: argparse.Namespace) -> int:
     if anvil_bin is None:
         print(
             "skipped: anvil binary unavailable (build with `cargo build --bin cleanroom`, "
-            "pass --anvil PATH, or set ANVIL_BIN)"
+            "pass --anvil PATH, or set CLEANROOM_BIN)"
         )
         return 0
 
@@ -944,7 +944,7 @@ def cmd_determinism(args: argparse.Namespace) -> int:
     if anvil_bin is None:
         print(
             "skipped: anvil binary unavailable (build with `cargo build --bin cleanroom`, "
-            "pass --anvil PATH, or set ANVIL_BIN)"
+            "pass --anvil PATH, or set CLEANROOM_BIN)"
         )
         return 0
 
@@ -1037,7 +1037,7 @@ def cmd_regress(args: argparse.Namespace) -> int:
     if anvil_bin is None:
         print(
             "skipped: anvil binary unavailable (build with `cargo build --bin cleanroom`, "
-            "pass --anvil PATH, or set ANVIL_BIN)"
+            "pass --anvil PATH, or set CLEANROOM_BIN)"
         )
         return 0
 
@@ -1166,7 +1166,7 @@ def cmd_regress(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="ANVIL eval harness")
+    parser = argparse.ArgumentParser(description="Cleanroom eval harness")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("smoke", help="validate the example manifest (CI eval-smoke)")
 
@@ -1181,7 +1181,7 @@ def main() -> int:
         default=str(HERE / "corpus" / "fixtures"),
         help="output directory (default eval/corpus/fixtures)",
     )
-    f.add_argument("--ffmpeg", help="path to ffmpeg binary (else ANVIL_FFMPEG, else PATH)")
+    f.add_argument("--ffmpeg", help="path to ffmpeg binary (else CLEANROOM_FFMPEG, else PATH)")
 
     c = sub.add_parser(
         "conformance",
@@ -1209,7 +1209,7 @@ def main() -> int:
         default=DEFAULT_LUFS_TOLERANCE,
         help=f"integrated-loudness cross-check tolerance in LU (default {DEFAULT_LUFS_TOLERANCE})",
     )
-    c.add_argument("--ffmpeg", help="path to ffmpeg binary (else ANVIL_FFMPEG, else PATH)")
+    c.add_argument("--ffmpeg", help="path to ffmpeg binary (else CLEANROOM_FFMPEG, else PATH)")
     c.add_argument("--json-out", help="write the machine-readable verdict JSON to this path")
 
     s = sub.add_parser(
@@ -1232,7 +1232,7 @@ def main() -> int:
     s.add_argument("--noise-dir", help="folder of real noise *.wav files to use instead of synthesizing noise")
 
     def _add_common_master_args(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--anvil", help="path to the anvil CLI binary (else ANVIL_BIN, else PATH/target dirs)")
+        p.add_argument("--anvil", help="path to the anvil CLI binary (else CLEANROOM_BIN, else PATH/target dirs)")
         p.add_argument(
             "--fixtures",
             help="a corpus/synth manifest JSON (default: eval/corpus/synth/manifest.json if it "
@@ -1250,7 +1250,7 @@ def main() -> int:
         help="run `anvil master` on fixtures and assert the M1 gates (06 §2; needs ffmpeg + anvil master)",
     )
     _add_common_master_args(me)
-    me.add_argument("--ffmpeg", help="path to ffmpeg binary (else ANVIL_FFMPEG, else PATH)")
+    me.add_argument("--ffmpeg", help="path to ffmpeg binary (else CLEANROOM_FFMPEG, else PATH)")
     me.add_argument(
         "--target-lufs", type=float, default=DEFAULT_TARGET_LUFS, help=f"loudness target (default {DEFAULT_TARGET_LUFS})"
     )
@@ -1288,7 +1288,7 @@ def main() -> int:
         help="compare current `anvil master` output hashes/metrics vs a stored baseline (06 §2)",
     )
     _add_common_master_args(r)
-    r.add_argument("--ffmpeg", help="path to ffmpeg binary (else ANVIL_FFMPEG, else PATH)")
+    r.add_argument("--ffmpeg", help="path to ffmpeg binary (else CLEANROOM_FFMPEG, else PATH)")
     r.add_argument(
         "--baseline",
         default=str(DEFAULT_REGRESSION_BASELINE),

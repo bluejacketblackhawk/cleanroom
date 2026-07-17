@@ -6,7 +6,7 @@
 
 ## Context
 
-Audio applications require sample-accurate playback, real-time DSP, and responsive waveform visualization. Webview (JavaScript + WebGL) is not reliable for these tasks: audio APIs are asynchronous and latency-prone, waveform data scales poorly (raw PCM → browser memory), and long operations block the UI. ANVIL must separate concerns: Rust owns realtime audio and heavy work; the UI is a remote control.
+Audio applications require sample-accurate playback, real-time DSP, and responsive waveform visualization. Webview (JavaScript + WebGL) is not reliable for these tasks: audio APIs are asynchronous and latency-prone, waveform data scales poorly (raw PCM → browser memory), and long operations block the UI. Cleanroom must separate concerns: Rust owns realtime audio and heavy work; the UI is a remote control.
 
 ## Decision
 

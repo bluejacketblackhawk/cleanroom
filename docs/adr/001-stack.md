@@ -6,7 +6,7 @@
 
 ## Context
 
-ANVIL is a local podcast mastering desktop application that must deliver a polished consumer experience while enabling agents and contributors to iterate rapidly on audio/AI processing logic. The stack choice determines the developer velocity, shipping timeline, and user experience baseline. The app must compile to Windows (x64/ARM64) and macOS (Intel/Apple Silicon) with minimal platform-specific code duplication and no vendor lock-in.
+Cleanroom is a local podcast mastering desktop application that must deliver a polished consumer experience while enabling agents and contributors to iterate rapidly on audio/AI processing logic. The stack choice determines the developer velocity, shipping timeline, and user experience baseline. The app must compile to Windows (x64/ARM64) and macOS (Intel/Apple Silicon) with minimal platform-specific code duplication and no vendor lock-in.
 
 ## Decision
 

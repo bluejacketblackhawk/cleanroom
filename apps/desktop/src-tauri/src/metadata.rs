@@ -388,15 +388,15 @@ mod tests {
     }
 
     /// End-to-end against a real audio file, through the exact helpers the Tauri commands call
-    /// (`write_metadata_to` / `read_metadata_from`). Gated on `ANVIL_FFMPEG` (used to *create*
+    /// (`write_metadata_to` / `read_metadata_from`). Gated on `CLEANROOM_FFMPEG` (used to *create*
     /// the fixture); the chapter round-trip additionally needs a usable ffmpeg sidecar
     /// (`FfmpegSidecar::locate`), so it's asserted only when one is available (set
-    /// `ANVIL_FFMPEG_ALLOW_UNPINNED=1` for a dev/GPL ffmpeg) — otherwise the tag round-trip is
+    /// `CLEANROOM_FFMPEG_ALLOW_UNPINNED=1` for a dev/GPL ffmpeg) — otherwise the tag round-trip is
     /// still verified and chapters are confirmed to degrade cleanly (empty + a note).
     #[test]
     fn metadata_round_trips_tags_and_chapters_on_a_real_file() {
-        let Some(ffmpeg) = std::env::var_os("ANVIL_FFMPEG") else {
-            eprintln!("skipping: ANVIL_FFMPEG not set");
+        let Some(ffmpeg) = std::env::var_os("CLEANROOM_FFMPEG") else {
+            eprintln!("skipping: CLEANROOM_FFMPEG not set");
             return;
         };
         let dir = tempfile::tempdir().unwrap();

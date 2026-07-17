@@ -1,4 +1,4 @@
-; ANVIL NSIS installer hooks (Tauri v2 `bundle.windows.nsis.installerHooks`,
+; Cleanroom NSIS installer hooks (Tauri v2 `bundle.windows.nsis.installerHooks`,
 ; see tauri.conf.json). Macro names/timing are fixed by tauri-bundler's installer.nsi
 ; template — see crates/tauri-bundler/src/bundle/windows/nsis/installer.nsi upstream.
 ;
@@ -7,7 +7,7 @@
 ;
 ; Why this hook exists (05 §M5 "uninstall hygiene"): `anvil-core::platform`
 ; (src/platform/windows.rs, workspace crate `anvil-core`) writes its own per-user HKCU
-; keys — an Explorer "Master with ANVIL" context-menu verb, an "Open with" list entry per
+; keys — an Explorer "Master with Cleanroom" context-menu verb, an "Open with" list entry per
 ; supported extension, and a login autostart Run-key value — but ONLY when the user opts
 ; in from Settings (04 §S8 Integration toggles). The installer itself never wrote those
 ; keys (Tauri's own file-association registration is separate — see `fileAssociations` in
@@ -17,6 +17,6 @@
 ; `platform/windows.rs` is idempotent, so this is safe to run unconditionally on every
 ; uninstall even when the user never turned any of it on.
 !macro NSIS_HOOK_PREUNINSTALL
-  DetailPrint "Removing ANVIL's Explorer integration and autostart entry..."
+  DetailPrint "Removing Cleanroom's Explorer integration and autostart entry..."
   ExecWait '"$INSTDIR\${MAINBINARYNAME}.exe" --uninstall-cleanup'
 !macroend

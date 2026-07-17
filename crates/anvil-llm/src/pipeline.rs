@@ -38,7 +38,7 @@ const MAX_CANDIDATE_LINES: usize = 80;
 /// Everything a generation run needs. [`Default`] is the shipped configuration.
 #[derive(Debug, Clone)]
 pub struct GenerateOptions {
-    /// Explicit gguf path. `None` → `ANVIL_LLM_MODEL`, then the first installed pack.
+    /// Explicit gguf path. `None` → `CLEANROOM_LLM_MODEL`, then the first installed pack.
     pub model: Option<PathBuf>,
     /// Context window to run with. The default is deliberately well under Qwen2.5's 32k: the
     /// KV cache is what puts an 8 GB machine into swap, and the chunker adapts to whatever

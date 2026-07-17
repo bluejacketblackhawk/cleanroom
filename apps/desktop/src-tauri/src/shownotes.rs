@@ -127,7 +127,7 @@ fn to_llm_input(t: &Transcript) -> TranscriptInput {
 
 /// Resolve an installed Qwen gguf: `anvil_llm`'s own installed packs first, then the
 /// Models-screen download dir (which `anvil_llm`'s search path doesn't cover). `None` lets
-/// [`anvil_llm::generate`] fall back to its own `ANVIL_LLM_MODEL`/env resolution before
+/// [`anvil_llm::generate`] fall back to its own `CLEANROOM_LLM_MODEL`/env resolution before
 /// finally erroring into the extractive path.
 fn resolve_shownotes_model(models_dir: &Path) -> Option<PathBuf> {
     if let Some(installed) = anvil_llm::installed_models().into_iter().next() {

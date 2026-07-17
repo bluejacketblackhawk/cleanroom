@@ -10,7 +10,7 @@
 //! **AAC note (deviation from ADR-005):** the ADR's original plan was OS-native AAC (Media
 //! Foundation on Windows, AudioToolbox on Mac) to sidestep ffmpeg's AAC quality/patent
 //! questions. M2 ships ffmpeg's *native* AAC encoder instead — it is patent-clear to invoke
-//! (ffmpeg is never linked, only run as a sidecar, so ANVIL carries no AAC IP obligation) and
+//! (ffmpeg is never linked, only run as a sidecar, so Cleanroom carries no AAC IP obligation) and
 //! modern ffmpeg's native encoder is good enough for podcast-bitrate use. MF/AudioToolbox
 //! AAC remains a later quality refinement (tracked, not blocking M2).
 //!

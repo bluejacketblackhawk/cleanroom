@@ -1,6 +1,6 @@
 [package]
 name = "anvil-cli"
-description = "ANVIL headless CLI (ADR-007): analyze/master/transcribe/batch/models — JSON-first, stable exit codes."
+description = "Cleanroom headless CLI (ADR-007): analyze/master/transcribe/batch/models — JSON-first, stable exit codes."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

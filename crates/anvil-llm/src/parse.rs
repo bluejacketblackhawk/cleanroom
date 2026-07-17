@@ -10,7 +10,7 @@
 //! - [`extract_json`] finds the first balanced `{…}` object in a pile of text.
 //! - [`ChunkDigest`] / [`RawShownotes`] deserialize leniently (missing fields default,
 //!   `start` accepts a number *or* a `"1:02:03"` clock string).
-//! - [`sanitize_chapters`] then enforces the contract the rest of ANVIL relies on: snapped to
+//! - [`sanitize_chapters`] then enforces the contract the rest of Cleanroom relies on: snapped to
 //!   real segment boundaries, strictly increasing, inside `[first_start, duration]`, titled,
 //!   capped.
 //!

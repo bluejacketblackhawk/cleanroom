@@ -1,10 +1,10 @@
 {
   "_comment": [
-    "The exact whisper.cpp CLI sidecar ANVIL ships, keyed by target. Single source of truth for",
+    "The exact whisper.cpp CLI sidecar Cleanroom ships, keyed by target. Single source of truth for",
     "scripts/fetch-whisper.ps1 (windows-x86_64) and scripts/build-whisper-macos.sh (macos-*).",
     "The target string is format!(\"{}-{}\", std::env::consts::OS, std::env::consts::ARCH).",
     "",
-    "whisper.cpp is run as a SEPARATE PROCESS (whisper-cli) and is never linked into ANVIL. It is",
+    "whisper.cpp is run as a SEPARATE PROCESS (whisper-cli) and is never linked into Cleanroom. It is",
     "MIT (whisper.cpp + ggml, (c) The ggml authors) - cleanly redistributable in an MIT app.",
     "",
     "WINDOWS (windows-x86_64): the plain CPU release build ('whisper-bin-x64.zip', no CUDA, no",
@@ -13,7 +13,7 @@
     "",
     "MACOS (macos-aarch64 + macos-x86_64): whisper.cpp v1.9.1 publishes ZERO macOS release",
     "binaries, so on macOS we BUILD FROM SOURCE at the pinned tag - two SEPARATE single-arch",
-    "builds (arm64, x86_64), NOT a universal binary (ANVIL bundles per-arch). GGML_NATIVE=OFF (the",
+    "builds (arm64, x86_64), NOT a universal binary (Cleanroom bundles per-arch). GGML_NATIVE=OFF (the",
     "default bakes -march=native, non-portable in a shipped binary; OFF gives the portable",
     "baseline and Metal + Accelerate carry the perf). Metal is on by default and the metallib is",
     "EMBEDDED (GGML_METAL_EMBED_LIBRARY defaults ON at this tag) inside libggml-metal - no loose",

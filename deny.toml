@@ -2,7 +2,7 @@
 # CI hygiene job runs `cargo deny check`. Update the allowlist only with a matching
 # entry in docs/licenses.md.
 #
-# Policy: ANVIL is MIT. Every dependency's effective license must be permissive
+# Policy: Cleanroom is MIT. Every dependency's effective license must be permissive
 # (MIT/Apache/BSD/ISC/Zlib/Unicode/CC0/Unlicense) or weak file-level copyleft (MPL-2.0,
 # unmodified — symphonia). Enforcement is the allow list below: cargo-deny 0.18+ removed the
 # separate `deny` key (EmbarkStudios/cargo-deny#611), so **anything not on this list fails the

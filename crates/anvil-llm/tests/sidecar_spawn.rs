@@ -3,7 +3,7 @@
 //! The unit tests cover the pipeline against a scripted [`Completer`]; the gated test in
 //! `real_generation.rs` covers a real Qwen2.5. Between them sits the part neither exercises on
 //! a machine with no llama.cpp: `Command` → temp prompt file → argv → stdout → JSON. This test
-//! covers exactly that, by pointing `ANVIL_LLAMA` at **this test binary**, which re-executes
+//! covers exactly that, by pointing `CLEANROOM_LLAMA` at **this test binary**, which re-executes
 //! itself as a stub `llama-cli`.
 //!
 //! The stub is not a toy: it asserts the argv is a valid llama-cli invocation, reads the
@@ -18,7 +18,7 @@ use anvil_llm::rubric::{self, RubricContext};
 use anvil_llm::{generate, GenerateOptions, LlamaSidecar, TranscriptInput, TranscriptSegment};
 
 /// Set on the child so it knows to be a model instead of a test runner.
-const STUB_ENV: &str = "ANVIL_LLM_STUB";
+const STUB_ENV: &str = "CLEANROOM_LLM_STUB";
 
 fn main() {
     if std::env::var_os(STUB_ENV).is_some() {
@@ -37,10 +37,10 @@ fn run_test() {
 
     // The child inherits this env, and re-enters main() as the stub.
     std::env::set_var(STUB_ENV, "1");
-    std::env::set_var("ANVIL_LLAMA", &exe);
+    std::env::set_var("CLEANROOM_LLAMA", &exe);
 
-    // The locator resolves the binary from ANVIL_LLAMA (search order step 1).
-    let sidecar = LlamaSidecar::locate().expect("locate via ANVIL_LLAMA");
+    // The locator resolves the binary from CLEANROOM_LLAMA (search order step 1).
+    let sidecar = LlamaSidecar::locate().expect("locate via CLEANROOM_LLAMA");
     assert_eq!(sidecar.binary(), exe.as_path());
 
     let input = episode();

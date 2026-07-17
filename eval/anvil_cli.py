@@ -32,11 +32,11 @@ _BIN_NAMES = ("cleanroom.exe", "cleanroom") if os.name == "nt" else ("cleanroom"
 def resolve_anvil_bin(explicit: str | os.PathLike[str] | None = None) -> str | None:
     """Resolve the `anvil` CLI binary, or return None if nothing usable is found.
 
-    Resolution order: an explicit path (e.g. a `--anvil` CLI flag), the `ANVIL_BIN` env
+    Resolution order: an explicit path (e.g. a `--anvil` CLI flag), the `CLEANROOM_BIN` env
     var, `anvil`/`anvil.exe` on PATH, then the standard cargo build output dirs
     (`target/debug`, `target/release`) under the repo root. Never raises.
     """
-    for candidate in (explicit, os.environ.get("ANVIL_BIN")):
+    for candidate in (explicit, os.environ.get("CLEANROOM_BIN")):
         if not candidate:
             continue
         found = shutil.which(str(candidate))

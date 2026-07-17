@@ -1,6 +1,6 @@
 //! # anvil-models — the sanctioned model-download module (ADR-009 airplane-mode carve-out)
 //!
-//! The **one** place ANVIL fetches model weights over the network. Every audio/AI/media/ASR
+//! The **one** place Cleanroom fetches model weights over the network. Every audio/AI/media/ASR
 //! engine crate stays HTTP-client-free by CI gate (`.github/scripts/check-network-deps.sh`);
 //! this crate is that gate's named `models` carve-out. Both the desktop Models screen
 //! (`apps/desktop/src-tauri/src/models.rs`) and the headless `anvil models pull`
@@ -300,13 +300,13 @@ mod tests {
     }
 
     /// End-to-end real-network fetch of the smallest real pack (`whisper-tiny`, ~75 MB): only
-    /// runs when explicitly opted in (`ANVIL_TEST_REAL_MODEL_DOWNLOAD=1`), since a network
+    /// runs when explicitly opted in (`CLEANROOM_TEST_REAL_MODEL_DOWNLOAD=1`), since a network
     /// fetch has no place in the default `cargo test` loop. Proves the resume-from-cancel path
     /// and the sha1-verified install against the real Hugging Face URL + catalog pin.
     #[test]
     fn fetch_whisper_tiny_resumes_and_verifies_for_real() {
-        if std::env::var_os("ANVIL_TEST_REAL_MODEL_DOWNLOAD").is_none() {
-            eprintln!("skipping: ANVIL_TEST_REAL_MODEL_DOWNLOAD not set (real network fetch)");
+        if std::env::var_os("CLEANROOM_TEST_REAL_MODEL_DOWNLOAD").is_none() {
+            eprintln!("skipping: CLEANROOM_TEST_REAL_MODEL_DOWNLOAD not set (real network fetch)");
             return;
         }
         let tmp = tempfile::tempdir().unwrap();

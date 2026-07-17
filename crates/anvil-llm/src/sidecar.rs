@@ -1,15 +1,15 @@
 //! llama.cpp sidecar manager.
 //!
-//! llama.cpp is **never linked** into ANVIL — no `llama-cpp-2`, no cmake, no bindgen, no
+//! llama.cpp is **never linked** into Cleanroom — no `llama-cpp-2`, no cmake, no bindgen, no
 //! libclang, no MSVC C++ link step. It is run as a separate `llama-cli` child process,
 //! exactly like [`anvil_asr::WhisperSidecar`] and [`anvil_media::FfmpegSidecar`]. That is a
 //! deliberate repeat of the decision ADR-004's neighbours already made: it keeps `cargo
 //! build` a pure-Rust seconds-long build on every dev machine and CI runner, keeps GPU
-//! backends (Vulkan/Metal/CUDA) a swap of the *binary* rather than a rebuild of ANVIL, and
+//! backends (Vulkan/Metal/CUDA) a swap of the *binary* rather than a rebuild of Cleanroom, and
 //! keeps the GPL/patent surface of a large C++ dependency at arm's length.
 //!
 //! Airplane-mode (ADR-005 engine invariant): this module **never downloads** anything. The
-//! binary must already be present — pointed at by `ANVIL_LLAMA`, bundled next to the app, or
+//! binary must already be present — pointed at by `CLEANROOM_LLAMA`, bundled next to the app, or
 //! on `PATH` — and the gguf must already be on disk (see [`crate::model`]). Inference never
 //! fetches a model.
 //!
@@ -58,7 +58,7 @@ pub struct LlamaSidecar {
 
 impl LlamaSidecar {
     /// Locate `llama-cli` without touching the network. Search order:
-    /// 1. `ANVIL_LLAMA` environment variable (explicit path),
+    /// 1. `CLEANROOM_LLAMA` environment variable (explicit path),
     /// 2. a bundled sidecar next to the current executable (`llama-cli`, `sidecar/…`,
     ///    `llama/…`),
     /// 3. `llama-cli` on `PATH`.
@@ -75,8 +75,8 @@ impl LlamaSidecar {
             return Self::from_path(found);
         }
         Err(LlmError::SidecarNotFound(
-            "no bundled sidecar, ANVIL_LLAMA unset, and llama-cli not on PATH \
-             (airplane-mode: ANVIL never auto-downloads it)"
+            "no bundled sidecar, CLEANROOM_LLAMA unset, and llama-cli not on PATH \
+             (airplane-mode: Cleanroom never auto-downloads it)"
                 .into(),
         ))
     }
@@ -103,7 +103,7 @@ impl LlamaSidecar {
 
     fn candidates() -> Vec<PathBuf> {
         let mut out = Vec::new();
-        if let Some(explicit) = std::env::var_os("ANVIL_LLAMA") {
+        if let Some(explicit) = std::env::var_os("CLEANROOM_LLAMA") {
             out.push(PathBuf::from(explicit));
         }
         if let Ok(exe) = std::env::current_exe() {
@@ -178,7 +178,7 @@ impl Completer for LlamaSidecar {
     }
 }
 
-/// Resolve the gguf path: explicit `opts.model` wins, then `ANVIL_LLM_MODEL`, then the first
+/// Resolve the gguf path: explicit `opts.model` wins, then `CLEANROOM_LLM_MODEL`, then the first
 /// installed pack in the models dir (7B before 1.5B). Never downloads.
 pub fn resolve_model(opts: &GenerateOptions) -> Result<PathBuf, LlmError> {
     if let Some(model) = &opts.model {
@@ -187,7 +187,7 @@ pub fn resolve_model(opts: &GenerateOptions) -> Result<PathBuf, LlmError> {
         }
         return Err(LlmError::ModelNotFound(model.display().to_string()));
     }
-    if let Some(env) = std::env::var_os("ANVIL_LLM_MODEL") {
+    if let Some(env) = std::env::var_os("CLEANROOM_LLM_MODEL") {
         let path = PathBuf::from(env);
         if path.is_file() {
             return Ok(path);
@@ -198,7 +198,7 @@ pub fn resolve_model(opts: &GenerateOptions) -> Result<PathBuf, LlmError> {
         return Ok(installed.path);
     }
     Err(LlmError::ModelNotFound(
-        "no model given, ANVIL_LLM_MODEL unset, and no Qwen2.5 gguf in the models dir".into(),
+        "no model given, CLEANROOM_LLM_MODEL unset, and no Qwen2.5 gguf in the models dir".into(),
     ))
 }
 

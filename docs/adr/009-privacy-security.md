@@ -6,7 +6,7 @@
 
 ## Context
 
-ANVIL is marketed as "100% local" — users want confidence that their podcast audio (often unpublished, sensitive, or confidential) never leaves their machine. Any network call outside offline-only updater/downloads undermines trust and violates the core value prop. Security model must prevent model/code injection and detect corruption.
+Cleanroom is marketed as "100% local" — users want confidence that their podcast audio (often unpublished, sensitive, or confidential) never leaves their machine. Any network call outside offline-only updater/downloads undermines trust and violates the core value prop. Security model must prevent model/code injection and detect corruption.
 
 ## Decision
 
@@ -21,7 +21,7 @@ ANVIL is marketed as "100% local" — users want confidence that their podcast a
 - Sidecars (ffmpeg) spawned with stdin/out pipes only. No file access outside the project folder or temp directories.
 - Model files hash-verified before load (compare against `models.json` manifest SHA-256).
 - No dynamic code download, no `eval`, no script loading from files.
-- Document the guarantee in README with firewall-sniffing instructions ("here's what ANVIL reaches out to, verify with Wireshark").
+- Document the guarantee in README with firewall-sniffing instructions ("here's what Cleanroom reaches out to, verify with Wireshark").
 
 ## Consequences
 

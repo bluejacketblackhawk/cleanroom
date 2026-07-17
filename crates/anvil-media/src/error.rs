@@ -49,7 +49,7 @@ pub enum MediaError {
     #[error(
         "ffmpeg sidecar hash mismatch: expected {expected}, got {actual} \
          (run scripts/fetch-ffmpeg.ps1 to provision the pinned LGPL build; a developer using \
-         their own ffmpeg must set ANVIL_FFMPEG and ANVIL_FFMPEG_ALLOW_UNPINNED=1)"
+         their own ffmpeg must set CLEANROOM_FFMPEG and CLEANROOM_FFMPEG_ALLOW_UNPINNED=1)"
     )]
     SidecarHashMismatch { expected: String, actual: String },
 

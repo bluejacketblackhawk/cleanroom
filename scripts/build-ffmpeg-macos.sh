@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build-ffmpeg-macos.sh — build the LGPL ffmpeg sidecar ANVIL ships on macOS,
+# build-ffmpeg-macos.sh — build the LGPL ffmpeg sidecar Cleanroom ships on macOS,
 # per-arch, from source. The macOS analogue of scripts/fetch-ffmpeg.ps1.
 #
 # WHY BUILD FROM SOURCE (this is the whole point of this file):
-#   ANVIL is MIT and *redistributes* ffmpeg as a sidecar process (never linked).
+#   Cleanroom is MIT and *redistributes* ffmpeg as a sidecar process (never linked).
 #   The binary we ship must therefore be GPL-free. On Windows we can pin BtbN's
 #   `win64-lgpl` prebuilt. On macOS **no LGPL-clean prebuilt exists**: BtbN
 #   publishes no macOS build, and evermeet / osxexperts / martin-riedl /
@@ -607,7 +607,7 @@ PY
 ARCHES=("$@")
 [[ ${#ARCHES[@]} -eq 0 ]] && ARCHES=(arm64 x86_64)
 
-log "ANVIL macOS ffmpeg build — arches: ${ARCHES[*]} — jobs: $JOBS"
+log "Cleanroom macOS ffmpeg build — arches: ${ARCHES[*]} — jobs: $JOBS"
 [[ "$(uname -m)" == "arm64" ]] || die "this script assumes an arm64 host (got $(uname -m))"
 
 fetch_all_sources
@@ -663,5 +663,5 @@ for row in "${SUMMARY[@]}"; do
   [[ -f "$BUILD/ffmpeg-${key#macos-}/USED_LD_CLASSIC" ]] && echo "ld_classic   : YES"
 done
 echo "=========================================================================="
-echo "Staged under vendor/ffmpeg/<target>/  (gitignored). Point ANVIL at one with:"
-echo "  export ANVIL_FFMPEG=$REPO/vendor/ffmpeg/macos-aarch64/ffmpeg"
+echo "Staged under vendor/ffmpeg/<target>/  (gitignored). Point Cleanroom at one with:"
+echo "  export CLEANROOM_FFMPEG=$REPO/vendor/ffmpeg/macos-aarch64/ffmpeg"

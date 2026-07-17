@@ -1,6 +1,6 @@
 [package]
 name = "anvil-dsp"
-description = "ANVIL DSP: HPF, adaptive leveler, true-peak limiter, loudness, de-esser, resample. Deterministic, block-based (ADR-003)."
+description = "Cleanroom DSP: HPF, adaptive leveler, true-peak limiter, loudness, de-esser, resample. Deterministic, block-based (ADR-003)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

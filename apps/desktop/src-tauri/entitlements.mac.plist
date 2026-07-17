@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  macOS entitlements for ANVIL (referenced by tauri.macos.conf.json `bundle.macOS.entitlements`).
+  macOS entitlements for Cleanroom (referenced by tauri.macos.conf.json `bundle.macOS.entitlements`).
 
   Two entitlements, both load-bearing on the shipped Mac build:
 

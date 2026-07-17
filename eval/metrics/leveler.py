@@ -190,7 +190,7 @@ def music_segment_delta(
     resolved = resolve_ffmpeg(ffmpeg)
     if resolved is None:
         raise RuntimeError(
-            "ffmpeg not found: pass --ffmpeg, set ANVIL_FFMPEG, or install ffmpeg on PATH"
+            "ffmpeg not found: pass --ffmpeg, set CLEANROOM_FFMPEG, or install ffmpeg on PATH"
         )
     tmp = Path(tmp_dir)
     tmp.mkdir(parents=True, exist_ok=True)

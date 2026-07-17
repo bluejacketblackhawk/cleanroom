@@ -1,7 +1,7 @@
-//! macOS shell integration (M6 lane B): the Finder "Master with ANVIL" Quick Action,
+//! macOS shell integration (M6 lane B): the Finder "Master with Cleanroom" Quick Action,
 //! file-type handling, and login autostart — the native siblings of `windows.rs`'s HKCU
 //! registry work. Everything here is per-user and additive/reversible: it only ever
-//! writes inside ANVIL's own files under `~/Library` (a `LaunchAgents` plist and a
+//! writes inside Cleanroom's own files under `~/Library` (a `LaunchAgents` plist and a
 //! `Services/*.workflow` bundle) and never mutates another app's state or a file type's
 //! default handler.
 //!
@@ -11,9 +11,9 @@
 //!
 //! ## Trait-method mapping (Windows registry -> macOS mechanism)
 //! - [`register_context_menu`]/[`unregister_context_menu`] -> install/remove a Finder
-//!   Quick Action: a `Services/Master with ANVIL.workflow` bundle whose
+//!   Quick Action: a `Services/Master with Cleanroom.workflow` bundle whose
 //!   `Contents/Info.plist` declares the `NSServices` menu item and whose
-//!   `Contents/document.wflow` runs the ANVIL binary on the selected files (the analog of
+//!   `Contents/document.wflow` runs the Cleanroom binary on the selected files (the analog of
 //!   the Windows verb's `"exe" "%1"` command). Removal deletes the bundle directory.
 //! - [`set_autostart`]/[`is_autostart_enabled`] -> write/delete a
 //!   `LaunchAgents/com.cleanroom.desktop.plist` with `RunAtLoad`; toggling also runs a
@@ -99,7 +99,7 @@ pub(super) fn register_file_associations() -> PlatformResult<()> {
 
 /// Honest no-op — the mirror of [`register_file_associations`]. The document-type
 /// declaration lives in the app bundle and is torn down when the `.app` is deleted; there
-/// is no per-user registration for ANVIL to revoke.
+/// is no per-user registration for Cleanroom to revoke.
 pub(super) fn unregister_file_associations() -> PlatformResult<()> {
     Ok(())
 }
@@ -260,7 +260,7 @@ fn shell_single_quote(s: &str) -> String {
 // --- Templates. Hand-authored (std only, no plist crate); every one is `plutil`-clean
 // and, for the plists, uses space indentation per `.editorconfig`. ---
 
-/// A `RunAtLoad` LaunchAgent whose sole `ProgramArguments` entry is the ANVIL executable
+/// A `RunAtLoad` LaunchAgent whose sole `ProgramArguments` entry is the Cleanroom executable
 /// (see [`LAUNCH_AGENT_LABEL`] for why there is no watch-folder argv yet).
 fn launch_agent_plist(exe: &Path) -> String {
     let exe = exe.to_string_lossy();
@@ -486,7 +486,7 @@ mod tests {
     }
 
     fn fake_exe() -> PathBuf {
-        PathBuf::from("/Applications/ANVIL.app/Contents/MacOS/anvil")
+        PathBuf::from("/Applications/Cleanroom.app/Contents/MacOS/anvil")
     }
 
     /// Assert a file is a well-formed property list per the system `plutil`. On this

@@ -1,6 +1,6 @@
 [package]
 name = "anvil-models"
-description = "ANVIL model downloads (ADR-009 sanctioned network module): hash-verified whisper.cpp ggml fetch into a per-user, mac-safe models dir — shared by the desktop Models screen and `anvil models pull`."
+description = "Cleanroom model downloads (ADR-009 sanctioned network module): hash-verified whisper.cpp ggml fetch into a per-user, mac-safe models dir — shared by the desktop Models screen and `anvil models pull`."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

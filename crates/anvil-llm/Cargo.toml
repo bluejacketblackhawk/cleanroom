@@ -1,6 +1,6 @@
 [package]
 name = "anvil-llm"
-description = "ANVIL local LLM (ADR-004): llama.cpp sidecar + Qwen2.5 (Apache-2.0 only) for shownotes/chapters/titles — private, optional pack, with a no-LLM topic-drift fallback."
+description = "Cleanroom local LLM (ADR-004): llama.cpp sidecar + Qwen2.5 (Apache-2.0 only) for shownotes/chapters/titles — private, optional pack, with a no-LLM topic-drift fallback."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -27,7 +27,7 @@ sha2.workspace = true
 serde_json.workspace = true
 
 # Exercises the real process-spawn path (Command → prompt file → stdout → JSON) against a
-# stub llama-cli, which is this very test binary re-invoked with ANVIL_LLM_STUB set. Needs a
+# stub llama-cli, which is this very test binary re-invoked with CLEANROOM_LLM_STUB set. Needs a
 # plain `fn main`, hence `harness = false`.
 [[test]]
 name = "sidecar_spawn"

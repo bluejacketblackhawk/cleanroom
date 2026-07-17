@@ -39,7 +39,7 @@ const productName = conf.productName ?? "Cleanroom";
 
 // --- locate the .app ---------------------------------------------------------------------------
 // Deterministic: exactly `<productName>.app` per tauri.conf.json — never "the first .app in the
-// dir", which once picked a stale pre-rename ANVIL.app over Cleanroom.app and validated the wrong
+// dir", which once picked a stale pre-rename Cleanroom.app over Cleanroom.app and validated the wrong
 // bundle. Strays next to the real one are noted; a dir holding ONLY foreign .apps is a hard error.
 // An explicit <path-to-.app> argument still wins unchanged.
 function resolveAppPath(argv) {

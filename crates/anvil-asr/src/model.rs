@@ -23,7 +23,7 @@
 //!
 //! ## Models directory resolution
 //! [`models_dirs`] returns the search path, first match wins:
-//! 1. `ANVIL_WHISPER_MODELS_DIR` environment variable (explicit dir override — always wins),
+//! 1. `CLEANROOM_WHISPER_MODELS_DIR` environment variable (explicit dir override — always wins),
 //! 2. the per-user **config** models dir (`~/Library/Application Support/anvil/models` on
 //!    macOS, `%APPDATA%\anvil\models` on Windows — via `anvil_core`'s platform abstraction, the
 //!    same `dirs` crate the rest of the app uses). This is where `anvil-models` / the desktop
@@ -82,7 +82,7 @@ const MIB: u64 = 1024 * 1024;
 #[cfg(test)]
 const GGML_BASE_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/";
 
-/// The catalog of model packs ANVIL knows how to use. English-only `.en` variants transcribe
+/// The catalog of model packs Cleanroom knows how to use. English-only `.en` variants transcribe
 /// English faster/more accurately; the multilingual variants are required for `-l auto` on
 /// non-English audio. `large-v3-turbo` is multilingual-only (there is no `.en` turbo build).
 pub const KNOWN_MODELS: &[ModelPack] = &[
@@ -209,7 +209,7 @@ pub fn models_dirs() -> Vec<PathBuf> {
 /// populated filesystem.
 fn candidate_models_dirs() -> Vec<PathBuf> {
     let mut out = Vec::new();
-    if let Some(explicit) = std::env::var_os("ANVIL_WHISPER_MODELS_DIR") {
+    if let Some(explicit) = std::env::var_os("CLEANROOM_WHISPER_MODELS_DIR") {
         out.push(PathBuf::from(explicit));
     }
     // The per-user config models dir — where the sanctioned downloader (`anvil-models`, used by
@@ -298,7 +298,7 @@ pub struct DiarModelPack {
     pub license: &'static str,
     /// Where a UI/installer fetches this **once**, up front. Never fetched by [`crate::diarize`].
     pub download_url: &'static str,
-    /// `true` for the pack ANVIL selects when the caller does not name one.
+    /// `true` for the pack Cleanroom selects when the caller does not name one.
     pub default: bool,
 }
 
@@ -517,9 +517,9 @@ mod tests {
                 "config dir ({cfg_idx}) must be searched before the .app bundle ({bundle_idx})"
             );
         }
-        // With no explicit `ANVIL_WHISPER_MODELS_DIR` override in this test process, the config
+        // With no explicit `CLEANROOM_WHISPER_MODELS_DIR` override in this test process, the config
         // dir is the very first place searched.
-        if std::env::var_os("ANVIL_WHISPER_MODELS_DIR").is_none() {
+        if std::env::var_os("CLEANROOM_WHISPER_MODELS_DIR").is_none() {
             assert_eq!(cands.first(), Some(&config));
         }
     }

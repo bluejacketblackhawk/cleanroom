@@ -100,7 +100,7 @@ impl Project {
 }
 
 /// Migration hook keyed off `schema_version`. A newer-than-supported version is a hard
-/// error (the user needs a newer ANVIL build); an older version is migrated forward
+/// error (the user needs a newer Cleanroom build); an older version is migrated forward
 /// before final deserialization. No migrations exist yet — v1 is the only version — so
 /// this is currently a passthrough for `version <= PROJECT_SCHEMA_VERSION`.
 fn migrate_manifest(raw: serde_json::Value) -> Result<ProjectManifest> {

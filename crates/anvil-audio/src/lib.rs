@@ -1,6 +1,6 @@
 //! # anvil-audio
 //!
-//! Local audio playback and waveform data for the ANVIL desktop app (M0 lane C).
+//! Local audio playback and waveform data for the Cleanroom desktop app (M0 lane C).
 //!
 //! Two responsibilities, both UI-independent (the React layer is a remote control that
 //! talks to these through Tauri commands — audio never crosses the webview, ADR-010):

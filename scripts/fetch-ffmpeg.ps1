@@ -3,7 +3,7 @@
     Provision the pinned LGPL ffmpeg sidecar, reproducibly and verifiably.
 
 .DESCRIPTION
-    ANVIL is MIT and ships ffmpeg as a SIDECAR PROCESS (never linked). The binary we
+    Cleanroom is MIT and ships ffmpeg as a SIDECAR PROCESS (never linked). The binary we
     redistribute must therefore be a GPL-free build. This script fetches exactly the build
     named in scripts/ffmpeg-pin.json and refuses to install anything else:
 
@@ -25,7 +25,7 @@
 
 .EXAMPLE
     pwsh -File scripts/fetch-ffmpeg.ps1
-    $env:ANVIL_FFMPEG = "$PWD\vendor\ffmpeg\windows-x86_64\ffmpeg.exe"
+    $env:CLEANROOM_FFMPEG = "$PWD\vendor\ffmpeg\windows-x86_64\ffmpeg.exe"
 #>
 [CmdletBinding()]
 param(
@@ -67,7 +67,7 @@ function Assert-Sha256([string]$Path, [string]$Expected, [string]$What) {
 # Already provisioned and correct? Nothing to do.
 if (-not $Force -and (Test-Path $destExe) -and ((Get-Sha256 $destExe) -eq $pin.binary_sha256)) {
     Write-Host "ffmpeg $($pin.version) already provisioned at $destExe" -ForegroundColor Green
-    Write-Host "  set ANVIL_FFMPEG=$destExe"
+    Write-Host "  set CLEANROOM_FFMPEG=$destExe"
     exit 0
 }
 
@@ -112,7 +112,7 @@ $violations = @($enabled | Where-Object { $pinFile.forbidden_configure_markers -
 
 if ($violations.Count -gt 0) {
     Remove-Item -Force $destExe
-    throw "REFUSING THIS BUILD: its configure line enables GPL/nonfree components: $($violations -join ', ').`nANVIL is MIT and redistributes this binary; it must be an LGPL-only build."
+    throw "REFUSING THIS BUILD: its configure line enables GPL/nonfree components: $($violations -join ', ').`nCleanroom is MIT and redistributes this binary; it must be an LGPL-only build."
 }
 
 Write-Host "  ok  configure line is GPL-free (no --enable-gpl, no --enable-nonfree)" -ForegroundColor DarkGreen
@@ -121,8 +121,8 @@ Write-Host "Installed $($pin.version) ($($pin.license))" -ForegroundColor Green
 Write-Host "  binary:  $destExe"
 Write-Host "  licence: $destLicense"
 Write-Host ""
-Write-Host "For dev, point ANVIL at it:" -ForegroundColor Cyan
-Write-Host "  `$env:ANVIL_FFMPEG = `"$destExe`""
+Write-Host "For dev, point Cleanroom at it:" -ForegroundColor Cyan
+Write-Host "  `$env:CLEANROOM_FFMPEG = `"$destExe`""
 Write-Host ""
 Write-Host "The installer must place this binary (and LICENSE.txt) next to the app executable;"
 Write-Host "the app hash-checks it against FFMPEG_PIN on every launch and refuses a mismatch."

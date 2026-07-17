@@ -192,7 +192,7 @@ impl TranscriptState {
 /// stripped against the same search (the multilingual variant the Models screen downloads,
 /// `ggml-<size>.bin`, no `.en`), and finally `models_dir` — `models::ModelsState::dir()` —
 /// directly. `anvil_asr::models_dirs` now searches that per-user config dir itself (its first
-/// entry after the `ANVIL_WHISPER_MODELS_DIR` override — see that function), so the first two
+/// entry after the `CLEANROOM_WHISPER_MODELS_DIR` override — see that function), so the first two
 /// probes already find a pack downloaded here; the explicit `models_dir` check stays as a
 /// belt-and-suspenders for the exact directory this app installs into. Returns `None` — never
 /// downloads — if nothing installed matches any of the three.
@@ -973,12 +973,12 @@ mod tests {
     // ---- end-to-end against the real whisper.cpp sidecar (gated on the test assets) ----
 
     /// Exercises the exact staging + transcribe path `transcribe` uses, against the real
-    /// `whisper-cli` sidecar and a real ggml model — requires `ANVIL_WHISPER` +
-    /// `ANVIL_WHISPER_MODEL` to point at them (see the M3 UI-wiring task's test assets).
+    /// `whisper-cli` sidecar and a real ggml model — requires `CLEANROOM_WHISPER` +
+    /// `CLEANROOM_WHISPER_MODEL` to point at them (see the M3 UI-wiring task's test assets).
     #[test]
     fn transcribe_pipeline_runs_against_the_real_whisper_sidecar() {
-        if std::env::var_os("ANVIL_WHISPER").is_none() {
-            eprintln!("skipping: ANVIL_WHISPER not set");
+        if std::env::var_os("CLEANROOM_WHISPER").is_none() {
+            eprintln!("skipping: CLEANROOM_WHISPER not set");
             return;
         }
         let tmp = tempfile::tempdir().unwrap();

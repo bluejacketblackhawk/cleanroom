@@ -6,7 +6,7 @@
 
 ## Context
 
-ANVIL integrates specialized AI models for denoise, VAD, speech/music classification, audio enhancement, speech recognition, speaker diarization, and chapter/show-notes generation. Each task has multiple candidates differing in quality, latency, size, license, and compute device (CPU/GPU/NPU). A principled matrix defines what ships bundled vs. on-demand and which models are acceptable.
+Cleanroom integrates specialized AI models for denoise, VAD, speech/music classification, audio enhancement, speech recognition, speaker diarization, and chapter/show-notes generation. Each task has multiple candidates differing in quality, latency, size, license, and compute device (CPU/GPU/NPU). A principled matrix defines what ships bundled vs. on-demand and which models are acceptable.
 
 ## Decision
 

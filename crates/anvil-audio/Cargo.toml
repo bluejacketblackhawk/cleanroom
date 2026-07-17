@@ -1,6 +1,6 @@
 [package]
 name = "anvil-audio"
-description = "ANVIL playback + waveform: cpal output engine, transport, and the min/max peaks pyramid (M0 lane C)."
+description = "Cleanroom playback + waveform: cpal output engine, transport, and the min/max peaks pyramid (M0 lane C)."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

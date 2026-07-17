@@ -1,13 +1,13 @@
 //! ffmpeg sidecar manager.
 //!
-//! ffmpeg is **never linked** into ANVIL — it is run as a separate child process. This
+//! ffmpeg is **never linked** into Cleanroom — it is run as a separate child process. This
 //! keeps the engine MIT-clean: we only ship / invoke an unmodified **LGPL** ffmpeg build,
 //! at arm's length, for the containers symphonia can't demux (mkv/webm/mov and other video
 //! wrappers) and any codec symphonia lacks.
 //!
 //! Airplane-mode guarantees (ADR-005, engine invariant): this module **never downloads**
 //! anything. The binary must already be present — bundled next to the app, pointed at by
-//! `ANVIL_FFMPEG`, or on `PATH`. Before running it we verify its sha256 against a pinned
+//! `CLEANROOM_FFMPEG`, or on `PATH`. Before running it we verify its sha256 against a pinned
 //! constant so a swapped/hostile binary can't be executed silently.
 //!
 //! Decoding pipes raw `f32le` PCM out of ffmpeg on stdout and reads `-progress` key/value
@@ -31,9 +31,9 @@
 //! |---|---|
 //! | bundled sidecar next to the exe (**this is what ships**) | hard [`MediaError::SidecarHashMismatch`] — nothing can bypass it |
 //! | `ffmpeg` found on `PATH` | hard [`MediaError::SidecarHashMismatch`] |
-//! | `ANVIL_FFMPEG=<path>` (a developer typed this) | hard error **unless** `ANVIL_FFMPEG_ALLOW_UNPINNED=1` is *also* set, which downgrades it to a loud warning |
+//! | `CLEANROOM_FFMPEG=<path>` (a developer typed this) | hard error **unless** `CLEANROOM_FFMPEG_ALLOW_UNPINNED=1` is *also* set, which downgrades it to a loud warning |
 //!
-//! So ANVIL runs an unverified ffmpeg only when a human both pointed it at one *and* said
+//! So Cleanroom runs an unverified ffmpeg only when a human both pointed it at one *and* said
 //! out loud that unverified is acceptable — two deliberate acts, neither of which a shipped
 //! build performs. That keeps dev ergonomics (the repo's dev ffmpeg is a **GPL** gyan build,
 //! which must never ship) without leaving the shipped sidecar bypassable.
@@ -67,7 +67,7 @@ use crate::AudioBuffer;
 /// Internal decode rate all sidecar output is resampled to by ffmpeg's `-ar`.
 const OUT_SAMPLE_RATE: u32 = anvil_core::INTERNAL_SAMPLE_RATE;
 
-/// One vendored ffmpeg build ANVIL ships, recorded in code so a licence audit never has to guess
+/// One vendored ffmpeg build Cleanroom ships, recorded in code so a licence audit never has to guess
 /// what the shipped bytes are. There is one entry per platform target in [`FFMPEG_PINS`];
 /// `scripts/ffmpeg-pin.json` carries the same values for the provisioning scripts, and
 /// `pin_json_matches_the_code` keeps the two honest.
@@ -76,7 +76,7 @@ const OUT_SAMPLE_RATE: u32 = anvil_core::INTERNAL_SAMPLE_RATE;
 /// release asset, so it has `archive_*` provenance. It sets `--enable-version3` (for gmp /
 /// libaribb24 / libopencore-amr), which FFmpeg's configure resolves to **LGPL v3**. Still an
 /// arm's-length licence for a separately-distributed desktop app, but LGPLv3 carries GPLv3 terms
-/// that are incompatible with the Apple App Store; ANVIL ships from GitHub Releases, so it does
+/// that are incompatible with the Apple App Store; Cleanroom ships from GitHub Releases, so it does
 /// not bite here.
 ///
 /// **macOS** has no LGPL-clean prebuilt anywhere (BtbN publishes no macOS build; evermeet,
@@ -88,7 +88,7 @@ const OUT_SAMPLE_RATE: u32 = anvil_core::INTERNAL_SAMPLE_RATE;
 /// [`FfmpegPin::source_url`] carries the build-script provenance instead of a URL.
 ///
 /// ffmpeg is used **only as a child process** — never linked — so its licence imposes nothing on
-/// ANVIL's MIT licence. Redistribution duties (handoff/07 §2) are met by shipping the vendored
+/// Cleanroom's MIT licence. Redistribution duties (handoff/07 §2) are met by shipping the vendored
 /// tree: `LICENSE.txt` next to the binary, the exact configure line discoverable (`ffmpeg
 /// -version`, mirrored in [`FfmpegPin::configure_line`]), and [`FfmpegPin::source_url`] as the
 /// permanent source pointer.
@@ -201,11 +201,11 @@ const MACOS_X86_64_CONFIGURE_LINE: &str = "configuration: --prefix=$REPO/.cache/
 /// provisioned. Mirrored verbatim in `scripts/ffmpeg-pin.json` (`windows-x86_64.configure_line`).
 const WINDOWS_CONFIGURE_LINE: &str = "configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-version3 --disable-debug --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-libaribb24 --disable-avisynth --enable-chromaprint --enable-libdav1d --disable-libdavs2 --disable-libdvdread --disable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --disable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --disable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --disable-libvidstab --enable-libvvenc --disable-whisper --disable-libx264 --disable-libx265 --disable-libxavs2 --disable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-libs=-lgomp --extra-ldflags=-pthread --extra-version=20260714";
 
-/// Set to `1`/`true` to let an `ANVIL_FFMPEG`-supplied binary run without matching the pin.
+/// Set to `1`/`true` to let an `CLEANROOM_FFMPEG`-supplied binary run without matching the pin.
 /// Developer-only (the repo's dev ffmpeg is a GPL build); never set in a shipped app.
-pub const ALLOW_UNPINNED_ENV: &str = "ANVIL_FFMPEG_ALLOW_UNPINNED";
+pub const ALLOW_UNPINNED_ENV: &str = "CLEANROOM_FFMPEG_ALLOW_UNPINNED";
 
-/// Configure-line tokens that mean a binary is **not** redistributable under ANVIL's terms:
+/// Configure-line tokens that mean a binary is **not** redistributable under Cleanroom's terms:
 /// the GPL-only external libraries (FFmpeg's `EXTERNAL_LIBRARY_GPL_LIST` +
 /// `EXTERNAL_LIBRARY_GPLV3_LIST`), the nonfree ones (`EXTERNAL_LIBRARY_NONFREE_LIST`), and the
 /// `gpl`/`nonfree` switches themselves. Names are in configure's underscore spelling; the
@@ -283,16 +283,16 @@ pub fn gpl_markers_in(configure_line: &str) -> Vec<&'static str> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Trust {
     /// A bundled sidecar or a `PATH` lookup — the shipped path. The pin is absolute here:
-    /// no environment variable can make ANVIL run an unverified binary from these.
+    /// no environment variable can make Cleanroom run an unverified binary from these.
     Shipped,
-    /// A path a developer put in `ANVIL_FFMPEG`. Still hash-checked, but they may opt out
+    /// A path a developer put in `CLEANROOM_FFMPEG`. Still hash-checked, but they may opt out
     /// with [`ALLOW_UNPINNED_ENV`].
     DeveloperSupplied,
 }
 
 fn allow_unpinned() -> bool {
     matches!(
-        std::env::var("ANVIL_FFMPEG_ALLOW_UNPINNED")
+        std::env::var("CLEANROOM_FFMPEG_ALLOW_UNPINNED")
             .unwrap_or_default()
             .trim(),
         "1" | "true" | "TRUE"
@@ -307,7 +307,7 @@ pub struct FfmpegSidecar {
 
 impl FfmpegSidecar {
     /// Locate ffmpeg without touching the network. Search order:
-    /// 1. `ANVIL_FFMPEG` environment variable (explicit path),
+    /// 1. `CLEANROOM_FFMPEG` environment variable (explicit path),
     /// 2. a bundled sidecar next to the current executable (and, on macOS, the packaged `.app`'s
     ///    `../Resources/ffmpeg/` — see [`Self::candidates`]),
     /// 3. `ffmpeg` on `PATH`.
@@ -329,8 +329,8 @@ impl FfmpegSidecar {
             return Self::checked(found, Trust::Shipped);
         }
         Err(MediaError::SidecarNotFound(
-            "no bundled sidecar, ANVIL_FFMPEG unset, and ffmpeg not on PATH \
-             (airplane-mode: ANVIL never auto-downloads it)"
+            "no bundled sidecar, CLEANROOM_FFMPEG unset, and ffmpeg not on PATH \
+             (airplane-mode: Cleanroom never auto-downloads it)"
                 .into(),
         ))
     }
@@ -339,7 +339,7 @@ impl FfmpegSidecar {
     /// ([`pinned_sha256`]).
     ///
     /// This is the strict entry point: the pin is enforced with no escape hatch, so a library
-    /// caller cannot be tricked into running an unaudited binary. (The `ANVIL_FFMPEG`
+    /// caller cannot be tricked into running an unaudited binary. (The `CLEANROOM_FFMPEG`
     /// developer opt-out lives in [`Self::locate`], where a human is demonstrably present.)
     pub fn from_path(path: impl Into<PathBuf>) -> Result<Self, MediaError> {
         Self::checked(path.into(), Trust::Shipped)
@@ -380,7 +380,7 @@ impl FfmpegSidecar {
 
     /// Fail unless this binary is a GPL-free build (see [`GPL_CONFIGURE_MARKERS`]).
     ///
-    /// ANVIL is MIT and ships the sidecar; a GPL ffmpeg in the bundle is a licence violation,
+    /// Cleanroom is MIT and ships the sidecar; a GPL ffmpeg in the bundle is a licence violation,
     /// not a bug. Cheap enough (one `-version` spawn) to call at install/packaging time.
     pub fn assert_lgpl(&self) -> Result<(), MediaError> {
         let line = self.configure_line()?;
@@ -392,7 +392,7 @@ impl FfmpegSidecar {
         // as a hard "we won't run this" with the offending markers named. Callers that need the
         // markers programmatically use [`gpl_markers_in`] directly.
         Err(MediaError::SidecarFailed(format!(
-            "{} is a GPL ffmpeg build (configure enables: {}) — ANVIL ships LGPL only",
+            "{} is a GPL ffmpeg build (configure enables: {}) — Cleanroom ships LGPL only",
             self.binary.display(),
             markers.join(", ")
         )))
@@ -406,7 +406,7 @@ impl FfmpegSidecar {
 
     fn candidates() -> Vec<(PathBuf, Trust)> {
         let mut out = Vec::new();
-        if let Some(explicit) = std::env::var_os("ANVIL_FFMPEG") {
+        if let Some(explicit) = std::env::var_os("CLEANROOM_FFMPEG") {
             out.push((PathBuf::from(explicit), Trust::DeveloperSupplied));
         }
         if let Ok(exe) = std::env::current_exe() {
@@ -649,7 +649,7 @@ impl Drop for FfmpegBlocks {
 /// when Windows signing lands — see ADR-012).
 ///
 /// This is a hard check, not a warning: the only way past a mismatch is a developer who both
-/// supplied the path via `ANVIL_FFMPEG` *and* set [`ALLOW_UNPINNED_ENV`]. See the module docs
+/// supplied the path via `CLEANROOM_FFMPEG` *and* set [`ALLOW_UNPINNED_ENV`]. See the module docs
 /// for why the two sources are treated differently.
 fn verify_hash(path: &Path, trust: Trust) -> Result<(), MediaError> {
     let target = format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH);
@@ -668,7 +668,7 @@ fn verify_hash(path: &Path, trust: Trust) -> Result<(), MediaError> {
             return Ok(());
         }
         return Err(MediaError::SidecarFailed(format!(
-            "no pinned ffmpeg build for {target}, so {} cannot be verified — ANVIL only runs a \
+            "no pinned ffmpeg build for {target}, so {} cannot be verified — Cleanroom only runs a \
              hash-pinned LGPL sidecar (see anvil_media::sidecar::FFMPEG_PINS)",
             path.display()
         )));
@@ -698,7 +698,7 @@ fn verify_hash(path: &Path, trust: Trust) -> Result<(), MediaError> {
             return Ok(());
         }
         return Err(MediaError::SidecarFailed(format!(
-            "no content-hash pin for {target}, so {} cannot be verified — ANVIL only runs a \
+            "no content-hash pin for {target}, so {} cannot be verified — Cleanroom only runs a \
              hash-pinned LGPL sidecar (see anvil_media::sidecar::FFMPEG_PINS)",
             path.display()
         )));
@@ -1196,7 +1196,7 @@ mod tests {
     const GPL_CONFIGURE_LINE: &str = "configuration: --enable-gpl --enable-version3 --enable-static --pkg-config=pkgconf --disable-w32threads --disable-autodetect --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-zlib --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-sdl2 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxvid --enable-libaom --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-ffnvcodec --enable-nvdec --enable-nvenc --enable-dxva2 --enable-d3d11va --enable-libvpl --enable-libgme --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libtheora --enable-libvo-amrwbenc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-librubberband";
 
     /// EVERY pinned build must be GPL-free, and each must actually enable the external LGPL-safe
-    /// codecs ANVIL relies on — including libass, which Clip Studio's caption burn-in requires on
+    /// codecs Cleanroom relies on — including libass, which Clip Studio's caption burn-in requires on
     /// every platform (clip.rs renders through the `ass=` filter). The proof is mechanical, not
     /// cosmetic: ffmpeg's configure calls `die_license_disabled gpl` on every GPL-list library, so
     /// a build with no `--enable-gpl` provably links none of them.

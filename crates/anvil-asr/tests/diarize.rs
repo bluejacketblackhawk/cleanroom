@@ -11,11 +11,11 @@
 //! Everything here is **gated on the environment** so `cargo test` stays green (and offline) on
 //! a machine with no sidecar and no models. The gate runs only when all of these point at real
 //! files:
-//! - `ANVIL_DIARIZE`             — `sherpa-onnx-offline-speaker-diarization`(`.exe`),
-//! - `ANVIL_DIARIZE_SEG_MODEL`   — the pyannote segmentation `.onnx`,
-//! - `ANVIL_DIARIZE_EMB_MODEL`   — the speaker-embedding `.onnx`,
-//! - `ANVIL_DIAR_TEST_AUDIO`     — the fixture `.wav`,
-//! - `ANVIL_DIAR_TEST_RTTM`      — its ground-truth `.rttm`.
+//! - `CLEANROOM_DIARIZE`             — `sherpa-onnx-offline-speaker-diarization`(`.exe`),
+//! - `CLEANROOM_DIARIZE_SEG_MODEL`   — the pyannote segmentation `.onnx`,
+//! - `CLEANROOM_DIARIZE_EMB_MODEL`   — the speaker-embedding `.onnx`,
+//! - `CLEANROOM_DIAR_TEST_AUDIO`     — the fixture `.wav`,
+//! - `CLEANROOM_DIAR_TEST_RTTM`      — its ground-truth `.rttm`.
 //!
 //! The DER metric itself is pure and is unit-tested below without any of that.
 
@@ -213,22 +213,22 @@ fn permutations(n_hyp: usize, n_ref: usize) -> Vec<Vec<Option<usize>>> {
 #[test]
 fn der_meets_the_quality_gate() {
     let (Some(sidecar), Some(seg), Some(emb), Some(audio), Some(rttm)) = (
-        env_file("ANVIL_DIARIZE"),
-        env_file("ANVIL_DIARIZE_SEG_MODEL"),
-        env_file("ANVIL_DIARIZE_EMB_MODEL"),
-        env_file("ANVIL_DIAR_TEST_AUDIO"),
-        env_file("ANVIL_DIAR_TEST_RTTM"),
+        env_file("CLEANROOM_DIARIZE"),
+        env_file("CLEANROOM_DIARIZE_SEG_MODEL"),
+        env_file("CLEANROOM_DIARIZE_EMB_MODEL"),
+        env_file("CLEANROOM_DIAR_TEST_AUDIO"),
+        env_file("CLEANROOM_DIAR_TEST_RTTM"),
     ) else {
         eprintln!(
-            "skipping DER gate: set ANVIL_DIARIZE, ANVIL_DIARIZE_SEG_MODEL, \
-             ANVIL_DIARIZE_EMB_MODEL, ANVIL_DIAR_TEST_AUDIO and ANVIL_DIAR_TEST_RTTM \
+            "skipping DER gate: set CLEANROOM_DIARIZE, CLEANROOM_DIARIZE_SEG_MODEL, \
+             CLEANROOM_DIARIZE_EMB_MODEL, CLEANROOM_DIAR_TEST_AUDIO and CLEANROOM_DIAR_TEST_RTTM \
              (see tests/fixtures/make-synthetic-diarization-fixture.ps1)"
         );
         return;
     };
 
-    // The locator must resolve the same binary ANVIL_DIARIZE names.
-    let located = DiarizeSidecar::locate().expect("locate sidecar via ANVIL_DIARIZE");
+    // The locator must resolve the same binary CLEANROOM_DIARIZE names.
+    let located = DiarizeSidecar::locate().expect("locate sidecar via CLEANROOM_DIARIZE");
     assert_eq!(located.binary(), sidecar.as_path());
 
     let reference = parse_rttm(&std::fs::read_to_string(&rttm).expect("read rttm"));
@@ -304,11 +304,11 @@ fn der_meets_the_quality_gate() {
 #[test]
 fn real_assign_speakers_when_sidecar_available() {
     let (Some(_), Some(seg), Some(emb), Some(audio), Some(rttm)) = (
-        env_file("ANVIL_DIARIZE"),
-        env_file("ANVIL_DIARIZE_SEG_MODEL"),
-        env_file("ANVIL_DIARIZE_EMB_MODEL"),
-        env_file("ANVIL_DIAR_TEST_AUDIO"),
-        env_file("ANVIL_DIAR_TEST_RTTM"),
+        env_file("CLEANROOM_DIARIZE"),
+        env_file("CLEANROOM_DIARIZE_SEG_MODEL"),
+        env_file("CLEANROOM_DIARIZE_EMB_MODEL"),
+        env_file("CLEANROOM_DIAR_TEST_AUDIO"),
+        env_file("CLEANROOM_DIAR_TEST_RTTM"),
     ) else {
         eprintln!("skipping assign_speakers e2e: diarization env not set");
         return;

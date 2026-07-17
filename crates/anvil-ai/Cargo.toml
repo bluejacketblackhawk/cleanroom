@@ -1,6 +1,6 @@
 [package]
 name = "anvil-ai"
-description = "ANVIL AI model runtime (ADR-004): DeepFilterNet3, ort sessions (VAD/enhance/diarize), device probe with CPU fallback."
+description = "Cleanroom AI model runtime (ADR-004): DeepFilterNet3, ort sessions (VAD/enhance/diarize), device probe with CPU fallback."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

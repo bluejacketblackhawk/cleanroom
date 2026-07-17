@@ -1,5 +1,5 @@
 //! Diagnostics export (04 §S8 "About… diagnostics export", 05 §M5.F): a zip of logs +
-//! basic system info the user can attach to a GitHub issue. ANVIL is a privacy-brand
+//! basic system info the user can attach to a GitHub issue. Cleanroom is a privacy-brand
 //! product (02 §Privacy) — this zip **never** contains audio, transcripts, project
 //! content, or any file the user opened. It contains exactly two kinds of thing:
 //! `system.json` (the [`SystemInfo`] fields below, nothing else) and the app's own

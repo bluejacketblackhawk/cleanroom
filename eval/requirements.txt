@@ -1,4 +1,4 @@
-# ANVIL eval harness dependencies (dev-only; the app ships no Python).
+# Cleanroom eval harness dependencies (dev-only; the app ships no Python).
 # run.py `smoke`/`validate`/`fixtures`/`conformance` need ONLY the standard library
 # (fixtures/conformance also need an ffmpeg binary, but not a pip package). `synth`,
 # `master-eval`, `determinism`, and `regress` (M1 lane 2) need the packages below.

@@ -1663,11 +1663,11 @@ mod tests {
     }
 
     /// Exercises every real-encoder path through the ffmpeg sidecar (mp3/flac/opus/
-    /// vorbis/aac/m4b) — requires `ANVIL_FFMPEG` to point at a real ffmpeg binary.
+    /// vorbis/aac/m4b) — requires `CLEANROOM_FFMPEG` to point at a real ffmpeg binary.
     #[test]
     fn cmd_master_encodes_every_compressed_format_via_ffmpeg_sidecar() {
-        if std::env::var_os("ANVIL_FFMPEG").is_none() {
-            eprintln!("skipping: ANVIL_FFMPEG not set");
+        if std::env::var_os("CLEANROOM_FFMPEG").is_none() {
+            eprintln!("skipping: CLEANROOM_FFMPEG not set");
             return;
         }
         let tmp = tempfile::tempdir().unwrap();

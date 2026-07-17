@@ -1,6 +1,6 @@
 [package]
 name = "anvil-asr"
-description = "ANVIL speech recognition (ADR-004): whisper.cpp + sherpa-onnx diarization sidecars — word timestamps, speakers, model manager."
+description = "Cleanroom speech recognition (ADR-004): whisper.cpp + sherpa-onnx diarization sidecars — word timestamps, speakers, model manager."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

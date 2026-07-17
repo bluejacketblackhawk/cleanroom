@@ -3,7 +3,7 @@
   Build the synthetic 3-speaker diarization fixture (audio + ground-truth RTTM).
 
 .DESCRIPTION
-  ANVIL's diarization quality gate is DER <= 20% (handoff/06-QUALITY-EVAL.md §2). The AMI
+  Cleanroom's diarization quality gate is DER <= 20% (handoff/06-QUALITY-EVAL.md §2). The AMI
   corpus is not redistributable and needs a licence click-through, so the offline gate runs
   against a *synthetic* conversation whose ground truth is exact by construction: each turn
   is rendered by a different Windows TTS voice, and the turn boundaries are known to the
@@ -18,8 +18,8 @@
     diarization-3spk.rttm  NIST RTTM ground truth, one line per turn
 
   Run it once, then point the gated test at the results:
-    $env:ANVIL_DIAR_TEST_AUDIO = "<OutDir>\diarization-3spk.wav"
-    $env:ANVIL_DIAR_TEST_RTTM  = "<OutDir>\diarization-3spk.rttm"
+    $env:CLEANROOM_DIAR_TEST_AUDIO = "<OutDir>\diarization-3spk.wav"
+    $env:CLEANROOM_DIAR_TEST_RTTM  = "<OutDir>\diarization-3spk.rttm"
     cargo test -p anvil-asr -- --nocapture
 
 .PARAMETER OutDir
@@ -27,7 +27,7 @@
 
 .PARAMETER Ffmpeg
   Path to ffmpeg, used only to normalise each TTS render to 16 kHz mono 16-bit PCM.
-  Defaults to $env:ANVIL_FFMPEG, then "ffmpeg" on PATH.
+  Defaults to $env:CLEANROOM_FFMPEG, then "ffmpeg" on PATH.
 
 .PARAMETER GapSeconds
   Silence inserted between turns. 0.4 s is a natural conversational beat and is longer than
@@ -36,7 +36,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$OutDir,
-    [string]$Ffmpeg = $(if ($env:ANVIL_FFMPEG) { $env:ANVIL_FFMPEG } else { 'ffmpeg' }),
+    [string]$Ffmpeg = $(if ($env:CLEANROOM_FFMPEG) { $env:CLEANROOM_FFMPEG } else { 'ffmpeg' }),
     [double]$GapSeconds = 0.4
 )
 

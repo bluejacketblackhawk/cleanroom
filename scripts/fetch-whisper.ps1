@@ -3,7 +3,7 @@
     Provision the pinned MIT whisper.cpp CLI sidecar, reproducibly and verifiably.
 
 .DESCRIPTION
-    ANVIL is MIT and runs whisper.cpp as a SIDECAR PROCESS (never linked). This script fetches
+    Cleanroom is MIT and runs whisper.cpp as a SIDECAR PROCESS (never linked). This script fetches
     exactly the build named in scripts/whisper-pin.json and refuses to install anything else:
 
       1. downloads the archive from the pinned immutable release-asset URL,
@@ -21,7 +21,7 @@
 
 .EXAMPLE
     pwsh -File scripts/fetch-whisper.ps1
-    $env:ANVIL_WHISPER = "$PWD\vendor\whisper\windows-x86_64\whisper-cli.exe"
+    $env:CLEANROOM_WHISPER = "$PWD\vendor\whisper\windows-x86_64\whisper-cli.exe"
 #>
 [CmdletBinding()]
 param(
@@ -62,7 +62,7 @@ function Assert-Sha256([string]$Path, [string]$Expected, [string]$What) {
 $destExe = Join-Path $destDir 'whisper-cli.exe'
 if (-not $Force -and (Test-Path $destExe) -and ((Get-Sha256 $destExe) -eq $pin.binary_sha256)) {
     Write-Host "whisper.cpp $($pin.version) already provisioned at $destExe" -ForegroundColor Green
-    Write-Host "  set ANVIL_WHISPER=$destExe"
+    Write-Host "  set CLEANROOM_WHISPER=$destExe"
     exit 0
 }
 
@@ -116,8 +116,8 @@ Write-Host "Installed whisper.cpp $($pin.version) ($($pin.license))" -Foreground
 Write-Host "  binary:  $destExe"
 Write-Host "  dir:     $destDir  (whisper-cli.exe + whisper.dll + ggml*.dll + LICENSE.txt)"
 Write-Host ""
-Write-Host "For dev, point ANVIL at it:" -ForegroundColor Cyan
-Write-Host "  `$env:ANVIL_WHISPER = `"$destExe`""
+Write-Host "For dev, point Cleanroom at it:" -ForegroundColor Cyan
+Write-Host "  `$env:CLEANROOM_WHISPER = `"$destExe`""
 Write-Host ""
 Write-Host "Packaging places this whole folder as 'whisper/' next to the app executable;"
 Write-Host "WhisperSidecar::locate() resolves it there with no env var."

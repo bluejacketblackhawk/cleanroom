@@ -26,7 +26,7 @@ pub enum AsrError {
     #[error("whisper sidecar failed: {0}")]
     SidecarFailed(String),
 
-    /// No ggml model could be resolved (none given, `ANVIL_WHISPER_MODEL` unset, and none
+    /// No ggml model could be resolved (none given, `CLEANROOM_WHISPER_MODEL` unset, and none
     /// installed in the models dir). Airplane-mode: locating a model never downloads one.
     #[error("whisper model not found: {0}")]
     ModelNotFound(String),

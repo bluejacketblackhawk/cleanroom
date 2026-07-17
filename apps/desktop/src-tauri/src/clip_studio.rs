@@ -9,7 +9,7 @@
 //! - **Licensing.** The engine picks an **LGPL-safe** H.264 encoder (`h264_mf` /
 //!   `h264_videotoolbox` / `libopenh264`, …) and keeps `libx264`/`libx265` on a denylist that
 //!   not even an env var can override (07 §video-encode: the shipped ffmpeg is LGPL-only, and
-//!   ANVIL is MIT). An app-local filtergraph hardcoding `-c:v libx264` would quietly make the
+//!   Cleanroom is MIT). An app-local filtergraph hardcoding `-c:v libx264` would quietly make the
 //!   product's video path GPL.
 //! - **Caption fidelity.** The engine burns **per-word karaoke** captions in as ASS, timed to
 //!   the word (measured 0-frame error), rather than showing a whole segment at a time.

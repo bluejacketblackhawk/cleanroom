@@ -8,7 +8,7 @@
 //! no model file to find.
 //!
 //! Resolution order (first hit wins), all hash-verified against [`SHA256`]:
-//!   1. `ANVIL_DFN3_TARBALL` — explicit path to a local copy (offline / air-gapped builds).
+//!   1. `CLEANROOM_DFN3_TARBALL` — explicit path to a local copy (offline / air-gapped builds).
 //!   2. `crates/anvil-ai/models/DeepFilterNet3_onnx.tar.gz` — a vendored copy, if present.
 //!   3. `OUT_DIR/DeepFilterNet3_onnx.tar.gz` — the cache from a previous build.
 //!   4. Download once from the pinned upstream URL, then cache in `OUT_DIR`.
@@ -30,16 +30,17 @@ const FILENAME: &str = "DeepFilterNet3_onnx.tar.gz";
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-env-changed=ANVIL_DFN3_TARBALL");
+    println!("cargo:rerun-if-env-changed=CLEANROOM_DFN3_TARBALL");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is always set by cargo"));
     let cached = out_dir.join(FILENAME);
 
     // 1. Explicit local override (air-gapped builds).
-    if let Some(explicit) = env::var_os("ANVIL_DFN3_TARBALL") {
+    if let Some(explicit) = env::var_os("CLEANROOM_DFN3_TARBALL") {
         let path = PathBuf::from(explicit);
-        let bytes = fs::read(&path)
-            .unwrap_or_else(|e| panic!("ANVIL_DFN3_TARBALL={} unreadable: {e}", path.display()));
+        let bytes = fs::read(&path).unwrap_or_else(|e| {
+            panic!("CLEANROOM_DFN3_TARBALL={} unreadable: {e}", path.display())
+        });
         verify(&bytes, &path.display().to_string());
         fs::write(&cached, &bytes).expect("write model cache");
         return;
@@ -76,7 +77,7 @@ fn download() -> Vec<u8> {
     let mut resp = ureq::get(URL).call().unwrap_or_else(|e| {
         panic!(
             "could not fetch the DeepFilterNet3 model from {URL}: {e}\n\
-             Offline build? Download it once and point ANVIL_DFN3_TARBALL at the file, or \
+             Offline build? Download it once and point CLEANROOM_DFN3_TARBALL at the file, or \
              drop it in crates/anvil-ai/models/{FILENAME}."
         )
     });

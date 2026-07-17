@@ -2,7 +2,7 @@
 
 Gate (06 QUALITY-EVAL.md §2): integrated loudness within +/-0.5 LU of target on 100% of
 corpus; true peak <= ceiling with zero tolerance. In M1 this is measured two ways and
-cross-checked: ANVIL's own ebur128 self-measure (the Rust `anvil analyze --json` engine)
+cross-checked: Cleanroom's own ebur128 self-measure (the Rust `anvil analyze --json` engine)
 vs ffmpeg's `ebur128` filter as an independent reference. This module owns the ffmpeg
 side of that cross-check; `run.py conformance` drives the comparison.
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 class LoudnessMeasurement:
     """A single ebur128 measurement. Field names match what `anvil analyze --json`
     is expected to emit per file (integrated_lufs / true_peak_dbtp / loudness_range_lu),
-    so ANVIL measurement JSON can be loaded straight into this shape."""
+    so Cleanroom measurement JSON can be loaded straight into this shape."""
 
     integrated_lufs: float
     true_peak_dbtp: float
@@ -32,13 +32,13 @@ def resolve_ffmpeg(explicit: str | os.PathLike[str] | None = None) -> str | None
     """Resolve an ffmpeg binary, or return None if nothing usable is found.
 
     Resolution order: an explicitly passed path (e.g. a `--ffmpeg` CLI flag), the
-    `ANVIL_FFMPEG` env var, then whatever `ffmpeg` resolves to on PATH.
+    `CLEANROOM_FFMPEG` env var, then whatever `ffmpeg` resolves to on PATH.
     `shutil.which` already does the right thing for both bare command names (PATH
     search) and full paths (existence + executability check), including on Windows
     where it resolves `ffmpeg` -> `ffmpeg.exe` via PATHEXT. Never raises, so callers
     can implement a clean "skipped: ffmpeg unavailable" exit rather than a crash.
     """
-    for candidate in (explicit, os.environ.get("ANVIL_FFMPEG"), "ffmpeg"):
+    for candidate in (explicit, os.environ.get("CLEANROOM_FFMPEG"), "ffmpeg"):
         if not candidate:
             continue
         found = shutil.which(str(candidate))
@@ -93,7 +93,7 @@ def measure_lufs_ffmpeg(
 ) -> LoudnessMeasurement:
     """Cross-check reference via ffmpeg's ebur128 filter (I / LRA / true-peak).
 
-    `ffmpeg` is resolved via `resolve_ffmpeg` (explicit path -> ANVIL_FFMPEG ->
+    `ffmpeg` is resolved via `resolve_ffmpeg` (explicit path -> CLEANROOM_FFMPEG ->
     PATH). Raises RuntimeError with a clear message if ffmpeg can't be found, the
     input file doesn't exist, or the summary output can't be parsed — never lets a
     subprocess/regex exception leak out raw.
@@ -105,7 +105,7 @@ def measure_lufs_ffmpeg(
     resolved = resolve_ffmpeg(ffmpeg)
     if resolved is None:
         raise RuntimeError(
-            "ffmpeg not found: pass --ffmpeg, set the ANVIL_FFMPEG env var, "
+            "ffmpeg not found: pass --ffmpeg, set the CLEANROOM_FFMPEG env var, "
             "or install ffmpeg on PATH"
         )
 

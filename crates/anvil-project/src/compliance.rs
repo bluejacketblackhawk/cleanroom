@@ -42,7 +42,7 @@ pub const ACX_RMS_MAX_DBFS: f64 = -18.0;
 pub const ACX_PEAK_MAX_DBFS: f64 = -3.0;
 pub const ACX_NOISE_FLOOR_MAX_DBFS: f64 = -60.0;
 
-/// One chain module's decision, as shown in the report's "what ANVIL did" table (03 §3 chain
+/// One chain module's decision, as shown in the report's "what Cleanroom did" table (03 §3 chain
 /// order). Free-form name/detail strings so a new chain module never needs a schema bump
 /// here — the DSP crate decides what's worth surfacing.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -341,7 +341,7 @@ const HTML_HEAD: &str = r#"<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>ANVIL compliance report</title>
+<title>Cleanroom compliance report</title>
 <style>
   :root {
     --bg: #ffffff; --fg: #14171a; --muted: #5b6470; --border: #dfe3e8;
@@ -392,7 +392,7 @@ pub fn render_html(input: &ComplianceInput) -> String {
 
     let _ = write!(
         html,
-        "<h1>ANVIL compliance report</h1>\n<p class=\"subtitle\">{}</p>\n",
+        "<h1>Cleanroom compliance report</h1>\n<p class=\"subtitle\">{}</p>\n",
         escape_html(&input.output_file)
     );
 
@@ -471,7 +471,7 @@ pub fn render_html(input: &ComplianceInput) -> String {
         html.push_str("</tbody>\n</table>\n");
     }
 
-    html.push_str("<h2>What ANVIL did</h2>\n<table>\n<thead><tr><th>Module</th><th>Status</th><th>Detail</th></tr></thead>\n<tbody>\n");
+    html.push_str("<h2>What Cleanroom did</h2>\n<table>\n<thead><tr><th>Module</th><th>Status</th><th>Detail</th></tr></thead>\n<tbody>\n");
     for module in &input.modules {
         let _ = writeln!(
             html,
@@ -637,7 +637,7 @@ impl PdfWriter {
 pub fn render_pdf(input: &ComplianceInput) -> Result<Vec<u8>> {
     let mut w = PdfWriter::new();
 
-    w.line("ANVIL compliance report", TITLE_SIZE_PT, true, BLACK);
+    w.line("Cleanroom compliance report", TITLE_SIZE_PT, true, BLACK);
     w.line(&input.output_file, BODY_SIZE_PT, false, MUTED);
     w.blank();
 
@@ -737,7 +737,7 @@ pub fn render_pdf(input: &ComplianceInput) -> Result<Vec<u8>> {
         w.blank();
     }
 
-    w.line("What ANVIL did", SECTION_SIZE_PT, true, BLACK);
+    w.line("What Cleanroom did", SECTION_SIZE_PT, true, BLACK);
     if input.modules.is_empty() {
         w.mono_line("(no module decisions recorded)", MUTED);
     }
@@ -761,7 +761,7 @@ pub fn render_pdf(input: &ComplianceInput) -> Result<Vec<u8>> {
     );
 
     let pages = w.finish();
-    let mut doc = PdfDocument::new("ANVIL compliance report");
+    let mut doc = PdfDocument::new("Cleanroom compliance report");
     let mut warnings = Vec::new();
     let bytes = doc
         .with_pages(pages)

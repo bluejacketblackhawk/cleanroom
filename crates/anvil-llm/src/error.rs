@@ -30,7 +30,7 @@ pub enum LlmError {
     #[error("llama sidecar failed: {0}")]
     SidecarFailed(String),
 
-    /// No gguf model pack could be resolved (none given, `ANVIL_LLM_MODEL` unset, and none
+    /// No gguf model pack could be resolved (none given, `CLEANROOM_LLM_MODEL` unset, and none
     /// installed in the models dir). Airplane-mode: locating a model never downloads one.
     #[error("LLM model pack not found: {0}")]
     ModelNotFound(String),

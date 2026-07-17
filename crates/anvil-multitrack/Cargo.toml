@@ -1,6 +1,6 @@
 [package]
 name = "anvil-multitrack"
-description = "ANVIL multitrack (03 §6): GCC-PHAT alignment + drift repair, crossgate bleed control, music ducking, per-track chains, and mixdown."
+description = "Cleanroom multitrack (03 §6): GCC-PHAT alignment + drift repair, crossgate bleed control, music ducking, per-track chains, and mixdown."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

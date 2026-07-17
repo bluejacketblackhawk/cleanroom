@@ -134,18 +134,18 @@ def test_parse_ebur128_summary_truncated_summary_raises() -> None:
 
 def test_resolve_ffmpeg_prefers_explicit_path(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("metrics.loudness.shutil.which", lambda cmd: f"/resolved/{cmd}")
-    monkeypatch.setenv("ANVIL_FFMPEG", "env-ffmpeg")
+    monkeypatch.setenv("CLEANROOM_FFMPEG", "env-ffmpeg")
     assert resolve_ffmpeg("explicit-ffmpeg") == "/resolved/explicit-ffmpeg"
 
 
 def test_resolve_ffmpeg_falls_back_to_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("metrics.loudness.shutil.which", lambda cmd: f"/resolved/{cmd}")
-    monkeypatch.setenv("ANVIL_FFMPEG", "env-ffmpeg")
+    monkeypatch.setenv("CLEANROOM_FFMPEG", "env-ffmpeg")
     assert resolve_ffmpeg(None) == "/resolved/env-ffmpeg"
 
 
 def test_resolve_ffmpeg_falls_back_to_path(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("ANVIL_FFMPEG", raising=False)
+    monkeypatch.delenv("CLEANROOM_FFMPEG", raising=False)
 
     def fake_which(cmd: str) -> str | None:
         return "/usr/bin/ffmpeg" if cmd == "ffmpeg" else None
@@ -155,7 +155,7 @@ def test_resolve_ffmpeg_falls_back_to_path(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_resolve_ffmpeg_returns_none_when_nothing_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("ANVIL_FFMPEG", raising=False)
+    monkeypatch.delenv("CLEANROOM_FFMPEG", raising=False)
     monkeypatch.setattr("metrics.loudness.shutil.which", lambda cmd: None)
     assert resolve_ffmpeg(None) is None
     assert ffmpeg_available(None) is False
@@ -178,7 +178,7 @@ def test_measure_lufs_ffmpeg_missing_ffmpeg_raises_clear_error(
 ) -> None:
     existing = tmp_path / "clip.wav"
     existing.write_bytes(b"RIFF....WAVEfmt ")  # content is irrelevant; never reaches ffmpeg
-    monkeypatch.delenv("ANVIL_FFMPEG", raising=False)
+    monkeypatch.delenv("CLEANROOM_FFMPEG", raising=False)
     monkeypatch.setattr("metrics.loudness.shutil.which", lambda cmd: None)
     with pytest.raises(RuntimeError, match="ffmpeg not found"):
         measure_lufs_ffmpeg(existing)

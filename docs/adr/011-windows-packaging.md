@@ -6,7 +6,7 @@
 
 ## Context
 
-M5 ships the first real distributable of ANVIL. It needs an installer a non-technical
+M5 ships the first real distributable of Cleanroom. It needs an installer a non-technical
 podcaster can run without admin rights, a way to opt out of installing at all (portable),
 a real update path once a repo exists to update from, and — because `anvil-core::platform`
 (ADR-006) already writes per-user registry keys for the Explorer context menu, file

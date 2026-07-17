@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "The exact ffmpeg sidecars ANVIL ships, one entry per platform target. Single source of",
+    "The exact ffmpeg sidecars Cleanroom ships, one entry per platform target. Single source of",
     "truth for the provisioning scripts (scripts/fetch-ffmpeg.ps1 on Windows,",
     "scripts/build-ffmpeg-macos.sh on macOS); anvil_media::sidecar::FFMPEG_PINS carries the same",
     "values in code, and the unit test `pin_json_matches_the_code` fails if the two ever drift.",
@@ -16,8 +16,8 @@
     "match the signed sidecar that actually ships. Windows/PE has no content_sha256 (stays raw until",
     "Windows signing lands). See crates/anvil-media/src/sidecar.rs macho_content_sha256 + ADR-012.",
     "",
-    "ffmpeg is run as a SEPARATE PROCESS and is never linked into ANVIL, so its licence does",
-    "not reach ANVIL's MIT code. But we redistribute the binary, so each build must be free of",
+    "ffmpeg is run as a SEPARATE PROCESS and is never linked into Cleanroom, so its licence does",
+    "not reach Cleanroom's MIT code. But we redistribute the binary, so each build must be free of",
     "GPL components: no --enable-gpl, no --enable-nonfree, and x264/x265/xvid/fdk-aac/rubberband/",
     "vidstab/frei0r/avisynth all disabled. `ffmpeg -version` self-reports the configure line and",
     "the provisioning + `pin_json_matches_the_code` scan it against forbidden_configure_markers.",

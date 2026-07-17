@@ -122,7 +122,7 @@ const MANIFEST: &[ManifestEntry] = &[
     ManifestEntry {
         id: anvil_llm::DEFAULT_MODEL_ID, // "qwen2.5-7b-instruct-q4_k_m"
         name: "Shownotes — Qwen2.5 7B",
-        detail: "The good local model for episode summaries, chapter markers, and title suggestions. Fully optional — ANVIL masters and exports (and writes basic shownotes) without it.",
+        detail: "The good local model for episode summaries, chapter markers, and title suggestions. Fully optional — Cleanroom masters and exports (and writes basic shownotes) without it.",
         size_label: "4.7 GB",
         size_bytes: 4_683_073_632,
         license: "Apache-2.0 (Qwen2.5-7B-Instruct)",
@@ -270,7 +270,7 @@ fn is_installed(dir: &Path, id: &str) -> bool {
 /// a bare hand-dropped `.bin` with no sentinel). Mirrors how [`llm_installed`] / [`diar_installed`]
 /// honor their engine crates' locators, so any model transcription can actually *use* reads as
 /// installed — not only one this screen downloaded. `anvil_asr::locate_model` searches
-/// `ANVIL_WHISPER_MODELS_DIR`, the per-user config dir where downloads land, the `.app` bundle's
+/// `CLEANROOM_WHISPER_MODELS_DIR`, the per-user config dir where downloads land, the `.app` bundle's
 /// `Resources/models`, and the cwd (see `anvil_asr::models_dirs`).
 fn whisper_installed(dir: &Path, id: &str) -> bool {
     if is_installed(dir, id) {
@@ -821,14 +821,14 @@ mod tests {
     }
 
     /// End-to-end real-network test of the desktop wrapper (opt-in via
-    /// `ANVIL_TEST_REAL_MODEL_DOWNLOAD=1` — a ~75 MB HTTPS fetch has no place in the default
+    /// `CLEANROOM_TEST_REAL_MODEL_DOWNLOAD=1` — a ~75 MB HTTPS fetch has no place in the default
     /// `cargo test` loop). The download/resume/verify itself is `anvil_models`' own tested
     /// concern; this proves the wrapper drives it, writes the installed sentinel, installs under
     /// the catalog filename, and clears the progress counter on success.
     #[test]
     fn fetch_and_verify_installs_and_writes_a_sentinel_for_a_real_pack() {
-        if std::env::var_os("ANVIL_TEST_REAL_MODEL_DOWNLOAD").is_none() {
-            eprintln!("skipping: ANVIL_TEST_REAL_MODEL_DOWNLOAD not set (real network fetch)");
+        if std::env::var_os("CLEANROOM_TEST_REAL_MODEL_DOWNLOAD").is_none() {
+            eprintln!("skipping: CLEANROOM_TEST_REAL_MODEL_DOWNLOAD not set (real network fetch)");
             return;
         }
         let tmp = tempfile::tempdir().unwrap();
