@@ -95,6 +95,23 @@ jobs:
           ./scripts/fetch-whisper.ps1
           ./scripts/fetch-sherpa.ps1
 
+      # Break the DirectML chicken-and-egg BEFORE any tauri build. `ort` downloads the real
+      # ~18 MB DirectML.dll into its pyke cache during `cargo build`, and stage-directml.ps1
+      # copies it to vendor/ort/windows-x86_64/. That script is wired to beforeBundleCommand,
+      # which runs at BUNDLE time — but tauri-build validates the `vendor/ort/windows-x86_64/*`
+      # glob at COMPILE time, so on a fresh runner `npm run tauri build` dies before the hook can
+      # run, and stage-directml.ps1's own advice ("run cargo build -p anvil-desktop and retry") is
+      # circular: that build is the one that fails. This lane only ever passed on a machine whose
+      # vendor/ort was already populated by an earlier build.
+      #
+      # anvil-ai pulls ort but never invokes tauri-build, so compiling it populates the cache with
+      # no glob check. Then stage, then bundle. The hook still fires later and is a no-op re-copy.
+      - name: Prime the ort cache + stage DirectML.dll (before compile — see above)
+        shell: pwsh
+        run: |
+          cargo build --release -p anvil-ai
+          ./scripts/stage-directml.ps1
+
       - name: Regenerate the bundled onboarding demo file
         # Deterministic (seeded PRNG) — committed to the repo already, this just proves CI
         # produces the byte-identical file rather than trusting a stale checked-in copy.
@@ -491,13 +508,23 @@ jobs:
           tar -xzf mac-vendor.tar.gz
           echo "vendor tree:"; find vendor -maxdepth 2 -type d | sort
 
-      # NOTE — no separate "stage sidecars" step. tauri.macos.conf.json sets
-      # beforeBundleCommand = `bash ../../scripts/stage-mac-sidecars.sh`, so Tauri runs the staging
-      # AUTOMATICALLY during the build below (the macOS analogue of stage-directml.ps1's Windows
-      # beforeBundleCommand), reading the arch from TAURI_ENV_ARCH that `--target` sets. It copies
-      # the correct-arch vendor tree into vendor/bundle-stage/macos/, sha256-verifies every file
-      # against the pins, and re-asserts +x — failing the build if a vendor dir is missing or a
-      # hash is wrong. (Verified against scripts/stage-mac-sidecars.sh + ADR-012.)
+      # Stage the sidecars HERE, before the build. Do NOT rely on beforeBundleCommand alone.
+      #
+      # tauri.macos.conf.json does set beforeBundleCommand = stage-mac-sidecars.sh, and the note
+      # that used to sit here claimed that was sufficient. It is not, and this is why every mac
+      # leg of this workflow failed on a fresh runner: `beforeBundleCommand` runs at BUNDLE time,
+      # but tauri-build validates every `bundle.resources` glob at COMPILE time. So `cargo build`
+      # dies on the missing `vendor/bundle-stage/macos/models/*` glob and the staging hook never
+      # gets the chance to run. It only ever appeared to work on a machine where a previous build
+      # had already populated vendor/bundle-stage/. Staging explicitly first breaks that cycle;
+      # the hook still fires later and is then a no-op re-verify.
+      #
+      # It copies the correct-arch tree out of vendor/{ffmpeg,whisper,sherpa,models}/macos-<arch>/
+      # into vendor/bundle-stage/macos/, sha256-verifies every file against the pins, and
+      # re-asserts +x — failing HERE if a vendor dir is missing or a hash is wrong.
+      # (scripts/stage-mac-sidecars.sh + ADR-012.)
+      - name: Stage the correct-arch sidecars (before compile — see above)
+        run: bash scripts/stage-mac-sidecars.sh ${{ matrix.arch }}
 
       # --- macOS signing: mirrors the Windows SIGNING_METHOD gate; inert until the owner's Apple
       # Developer decision (ADR-012). When APPLE_SIGNING is set, this imports the Developer ID cert
