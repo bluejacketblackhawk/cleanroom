@@ -42,15 +42,15 @@ Grab a file and run it. No command line, no account, no setup — ffmpeg and the
 
 | | |
 |---|---|
-| **Windows 10/11** (x64) | [**Installer (.exe)**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_x64-setup.exe) · [portable .zip](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom-0.1.0-portable-x64.zip) |
-| **macOS** (Apple Silicon) | [**Cleanroom_0.1.0_aarch64.dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_aarch64.dmg) |
-| **macOS** (Intel) | [**Cleanroom_0.1.0_x64.dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/download/v0.1.0-beta.1/Cleanroom_0.1.0_x64.dmg) |
+| **Windows 10/11** (x64) | [**Download installer (.exe)**](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-windows-x64-setup.exe) · [portable .zip](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-windows-x64-portable.zip) |
+| **macOS** (Apple Silicon) | [**Download .dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-macos-arm64.dmg) |
+| **macOS** (Intel) | [**Download .dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-macos-x64.dmg) |
 
 It's a **beta**. If it wrecks your audio, [open an issue](https://github.com/bluejacketblackhawk/cleanroom/issues) and it'll get fixed.
 
 The Windows build is unsigned, so SmartScreen will say "unknown publisher" — **More info → Run anyway**. The Mac DMGs are signed and notarized, so they open with a normal double-click.
 
-[All files + SHA-256 checksums →](https://github.com/bluejacketblackhawk/cleanroom/releases/tag/v0.1.0-beta.1)
+[All files, version-pinned builds + SHA-256 checksums →](https://github.com/bluejacketblackhawk/cleanroom/releases/latest)
 
 ## One click, and it sounds mastered
 
