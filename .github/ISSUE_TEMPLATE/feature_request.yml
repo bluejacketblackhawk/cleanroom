@@ -13,7 +13,7 @@ body:
       label: Problem or Motivation
       description: What's the pain point? What workflow doesn't work today?
       placeholder: |
-        I need to add background music to podcast episodes, but ANVIL only processes voice/audio.
+        I need to add background music to podcast episodes, but Cleanroom only processes voice/audio.
     validations:
       required: true
 
@@ -53,7 +53,7 @@ body:
     attributes:
       label: Scope fit
       options:
-        - label: "This feature fits ANVIL's wedge: **100% local, one-click podcast mastering** (not a DAW, not a full audio editor)."
+        - label: "This feature fits Cleanroom's wedge: **100% local, one-click podcast mastering** (not a DAW, not a full audio editor)."
           required: true
 
   - type: textarea

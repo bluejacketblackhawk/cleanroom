@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds ANVIL's portable Windows distribution (05 §M5 lane A: "NSIS installer + portable
+// Builds Cleanroom's portable Windows distribution (05 §M5 lane A: "NSIS installer + portable
 // zip"). Tauri's own bundler only produces the NSIS installer (`tauri.conf.json`'s
 // `bundle.targets`) - there's no first-party "portable" bundle target, and there doesn't
 // need to be one: a Tauri app is a single self-contained exe (WebView2 is OS-provided).
@@ -19,7 +19,7 @@
 // workspace member (see the root `Cargo.toml`'s `[workspace] members`), so the build
 // lands in the *workspace root's* `target/`, not a per-crate one — this looks for both,
 // preferring the workspace-root location, so the script still works if that ever changes.
-// Writes `<release>/bundle/portable/ANVIL-<version>-portable-x64.zip`, alongside where the
+// Writes `<release>/bundle/portable/Cleanroom-<version>-portable-x64.zip`, alongside where the
 // NSIS bundler drops its own `bundle/nsis/*.exe`.
 //
 // Windows-only (matches the rest of M5 — win-arm64/macOS portable builds are separate
@@ -45,7 +45,7 @@ const workspaceRoot = path.join(desktopDir, "..", "..");
 
 const conf = JSON.parse(readFileSync(path.join(srcTauriDir, "tauri.conf.json"), "utf8"));
 const version = conf.version;
-const productName = conf.productName ?? "ANVIL";
+const productName = conf.productName ?? "Cleanroom";
 
 // Binary filename: Tauri's `mainBinaryName` if set, else the Cargo package name (from
 // `src-tauri/Cargo.toml`'s `[package] name`, since `version.workspace = true` etc. don't
@@ -87,7 +87,7 @@ rmSync(stageDir, { recursive: true, force: true });
 mkdirSync(stageDir, { recursive: true });
 
 const licensePath = path.join(desktopDir, "..", "..", "LICENSE");
-const readmeText = `ANVIL ${version} — portable build
+const readmeText = `Cleanroom ${version} — portable build
 ${"=".repeat(30)}
 
 This is the no-install version: unzip anywhere and run ${binName}.exe. It writes only to

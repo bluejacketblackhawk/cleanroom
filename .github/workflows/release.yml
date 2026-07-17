@@ -139,7 +139,7 @@ jobs:
       # Resolve the bundle dir ONCE, dual-candidate (same pattern as the mac legs). cargo/tauri put
       # release builds in the WORKSPACE-ROOT target/ — src-tauri is a workspace member with no
       # target-dir override; STATE.md records the real M5.5 installer at
-      # target/release/bundle/nsis/ANVIL_0.1.0_x64-setup.exe, and package-portable.mjs resolves
+      # target/release/bundle/nsis/Cleanroom_0.1.0_x64-setup.exe, and package-portable.mjs resolves
       # workspace-root first — so the previously hardcoded apps/desktop/src-tauri/target/... paths
       # in the steps below had never been exercised (this workflow has not run yet) and were
       # dead-on-arrival. The src-tauri-local dir stays as the fallback in case the layout ever
@@ -480,7 +480,7 @@ jobs:
         run: node apps/desktop/scripts/verify-mac-bundle.mjs --target ${{ matrix.triple }}
 
       # Build the distributable DMG headlessly (hdiutil UDZO, no Finder). Writes
-      # target/<triple>/release/bundle/dmg/ANVIL_<version>_<arch>.dmg. (CLI verified against
+      # target/<triple>/release/bundle/dmg/Cleanroom_<version>_<arch>.dmg. (CLI verified against
       # scripts/make-mac-dmg.mjs.)
       - name: Build the DMG (headless — hdiutil, no Finder)
         run: node apps/desktop/scripts/make-mac-dmg.mjs --target ${{ matrix.triple }}
@@ -578,7 +578,7 @@ jobs:
               (SignPath OSS vs Azure Trusted Signing) is not yet configured — see the workflow run.
             - **macOS** (both arches): the app is ad-hoc signed only, so Gatekeeper blocks a
               double-click. Open it the first time with **right-click → Open → Open**, or run
-              `xattr -dr com.apple.quarantine /Applications/ANVIL.app`. This goes away once an
+              `xattr -dr com.apple.quarantine /Applications/Cleanroom.app`. This goes away once an
               Apple Developer ID + notarization is configured (`APPLE_SIGNING`).
 
             Pre-release until this tag passes the M6 install/open verification on real hardware.

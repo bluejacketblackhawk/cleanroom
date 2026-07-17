@@ -5,9 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve ANVIL. Please provide as much detail as you can to help us understand and fix the issue.
+        Thanks for helping improve Cleanroom. Please provide as much detail as you can to help us understand and fix the issue.
 
-        **Privacy Note:** ANVIL is 100% local — your audio is never uploaded. Audio samples are optional and not required for bug reports. If you attach a diagnostics bundle (local file), it never leaves your machine unless you share it.
+        **Privacy Note:** Cleanroom is 100% local — your audio is never uploaded. Audio samples are optional and not required for bug reports. If you attach a diagnostics bundle (local file), it never leaves your machine unless you share it.
 
   - type: textarea
     id: what_happened
@@ -26,7 +26,7 @@ body:
       label: Steps to reproduce
       description: Exact steps to reproduce the issue
       placeholder: |
-        1. Open ANVIL
+        1. Open Cleanroom
         2. Load a WAV file (e.g., podcast_episode.wav)
         3. Click "Analyze"
         4. Wait 10 seconds
@@ -66,7 +66,7 @@ body:
   - type: input
     id: app_version
     attributes:
-      label: ANVIL Version
+      label: Cleanroom Version
       description: Found in About or --version
       placeholder: "0.1.0"
     validations:
@@ -79,7 +79,7 @@ body:
       description: |
         Any other info: file format/size, audio codec, error messages, screenshots, or a local diagnostics bundle.
 
-        Diagnostics bundle: Run ANVIL and look for the "Debug" or "Export Diagnostics" button. This exports local logs and system info (never audio).
+        Diagnostics bundle: Run Cleanroom and look for the "Debug" or "Export Diagnostics" button. This exports local logs and system info (never audio).
       placeholder: |
         - File: podcast_episode.wav (48 kHz, 2 channels, 1.2 GB)
         - Error message shown in UI: "Processing failed: Out of memory"
@@ -90,5 +90,5 @@ body:
     attributes:
       label: Privacy acknowledgment
       options:
-        - label: "I understand ANVIL never auto-uploads audio or telemetry, and I'm providing this report voluntarily."
+        - label: "I understand Cleanroom never auto-uploads audio or telemetry, and I'm providing this report voluntarily."
           required: true

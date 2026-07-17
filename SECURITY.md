@@ -6,7 +6,7 @@ Please report security issues **privately** via GitHub Security Advisories
 ("Report a vulnerability" on the repository's Security tab) rather than a public issue.
 We aim to acknowledge within a few days.
 
-Because ANVIL processes audio entirely locally and ships no server, the most relevant
+Because Cleanroom processes audio entirely locally and ships no server, the most relevant
 classes of report are:
 
 - A path by which the app makes a **network connection outside the updater/model-pack

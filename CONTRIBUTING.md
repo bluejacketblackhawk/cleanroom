@@ -1,4 +1,4 @@
-# Contributing to ANVIL
+# Contributing to Cleanroom
 
 Thanks for helping build a free, private, local podcast mastering tool. This project is
 pre-release; the foundation is still landing. The full spec lives in [`handoff/`](handoff/)
