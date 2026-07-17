@@ -22,9 +22,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-latest = macOS 15 arm64; macos-15-intel = macOS 15 x86_64 (added M6 so the
-        # nightly core suite exercises both mac arches, matching ci.yml's rust-core gate).
-        os: [windows-latest, macos-latest, macos-15-intel]
+        # macos-latest = macOS 15 arm64. macos-15-intel is deliberately ABSENT: `cargo test
+        # --workspace` NEVER FINISHES there. anvil-ai's DeepFilterNet3 tests — and anvil-cli's
+        # end-to-end cmd_master_* tests, which drive the same chain — run real neural inference on
+        # the slowest runner GitHub rents, and the one target where `ort` is load-dynamic with no
+        # CoreML path (ADR-012). Three separate runs sat between 40 and 70+ minutes without
+        # completing, while the identical tests pass in seconds on the two lanes below.
+        # ci.yml drops its test step on that lane for exactly this reason and keeps the lane for
+        # rustfmt/clippy/build (the x86_64 anti-cliff signal). THIS job is tests-only, so the lane
+        # has nothing left to contribute — it would just hang the nightly every morning.
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
