@@ -46,7 +46,7 @@ Grab a file and run it. No command line, no account, no setup — ffmpeg and the
 | **macOS** (Apple Silicon) | [**Download .dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-macos-arm64.dmg) |
 | **macOS** (Intel) | [**Download .dmg**](https://github.com/bluejacketblackhawk/cleanroom/releases/latest/download/Cleanroom-macos-x64.dmg) |
 
-It's a **beta**. If it wrecks your audio, [open an issue](https://github.com/bluejacketblackhawk/cleanroom/issues) and it'll get fixed.
+It's maintained as it goes — if it wrecks your audio, [open an issue](https://github.com/bluejacketblackhawk/cleanroom/issues) and it'll get fixed.
 
 The Windows build is unsigned, so SmartScreen will say "unknown publisher" — **More info → Run anyway**. The Mac DMGs are signed and notarized, so they open with a normal double-click.
 
@@ -55,6 +55,30 @@ The Windows build is unsigned, so SmartScreen will say "unknown publisher" — *
 ## One click, and it sounds mastered
 
 Drop an audio or video file, press **Master**, export. That one button runs the whole chain locally: two-pass loudness to a broadcast target (EBU R128, true-peak safe), AI denoise (DeepFilterNet3) that pulls the room, hiss, and fan out from behind your voice, and adaptive leveling so a quiet guest and a loud host land at the same volume. On a noisy demo episode that's −30 LUFS with a −39 dB noise floor, one click brings it to a dead-on −16 LUFS with the floor pushed down past −67 dB, no clipping. Then flip the **A/B** toggle to hear exactly what it did, per module, sample-aligned. Everything else — tiers, batch, transcription, multitrack — is progressive disclosure on top. The default path is three clicks and nothing else.
+
+## Prove it yourself
+
+None of those numbers have to be taken on faith — the binary grades its own work. Wreck a clean clip, master it, and make it measure both sides:
+
+```sh
+# wreck any clean voice clip: -13 dB of gain, room echo, pink hiss, 60 Hz hum
+ffmpeg -i clean.wav -filter_complex "[0:a]volume=-13dB,aecho=0.7:0.6:28|46:0.22|0.14[v];anoisesrc=color=pink:amplitude=0.012:duration=30[n];sine=frequency=60:duration=30,volume=0.006[h];[v][n][h]amix=inputs=3:duration=first:normalize=0" wrecked.wav
+
+# from a checkout: master it, then measure both
+cargo run --release -p anvil-cli -- master wrecked.wav -o fixed.wav
+cargo run --release -p anvil-cli -- analyze wrecked.wav
+cargo run --release -p anvil-cli -- analyze fixed.wav
+```
+
+One run of exactly that recipe lives in this repo — [the wrecked clip](assets/wreck-before.wav) and [the same file after one Master](assets/wreck-after.wav). The narration is a local synthetic voice on purpose: no microphone, no human take, so the entire demo reproduces from scratch on your machine.
+
+| | wrecked | after one Master |
+|---|---|---|
+| integrated loudness | −41.8 LUFS | **−16.1 LUFS** (target −16) |
+| true peak | −24.9 dBTP | **−1.00 dBTP** (ceiling −1) |
+| SNR | 15.1 dB | **70.3 dB** |
+
+And because renders are deterministic, running it again produces those bytes again. Not similar bytes. Those bytes.
 
 ## What it does
 
