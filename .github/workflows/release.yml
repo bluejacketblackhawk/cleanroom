@@ -401,15 +401,23 @@ jobs:
       # produces the DMG below instead. apps/desktop's `package:mac:*` npm scripts use app,dmg for
       # INTERACTIVE (Finder-available) runs — CI takes the headless path. beforeBundleCommand stages
       # the sidecars first (note above). No updater artifacts: createUpdaterArtifacts is off.
+      # Signing env is exported ONLY when the owner has configured it. The old unconditional
+      # `env:` block set APPLE_SIGNING_IDENTITY to the EMPTY STRING when the repo var was
+      # unset — and Tauri treats present-but-empty as "sign with identity \"\"", which fails
+      # with `no identity found` (run 30719307066, both mac legs). Absent entirely → the
+      # bundler ad-hoc signs, the intended unsigned-until-configured behaviour.
+      - name: Export Apple signing env (only when configured)
+        if: vars.APPLE_SIGNING == 'developer-id'
+        run: |
+          {
+            echo "APPLE_SIGNING_IDENTITY=${{ vars.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
+            echo "APPLE_TEAM_ID=${{ vars.APPLE_TEAM_ID }}"
+          } >> "$GITHUB_ENV"
+
       - name: Build the .app
         working-directory: apps/desktop
-        env:
-          # Empty unless the owner sets them → Tauri produces an UNSIGNED ad-hoc bundle (current
-          # M6 state). Set vars.APPLE_SIGNING + these to codesign/notarize (see the gate above).
-          APPLE_SIGNING_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
         run: npm run tauri build -- --target ${{ matrix.triple }} --bundles app
 
       # verify-mac-bundle.mjs — the mac analogue of the win-x64 DirectML ship-gate: proves every
