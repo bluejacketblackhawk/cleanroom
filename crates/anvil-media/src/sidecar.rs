@@ -141,7 +141,7 @@ pub static FFMPEG_PINS: &[FfmpegPin] = &[
     FfmpegPin {
         version: "n8.1.2-22-g94138f6973",
         target: "windows-x86_64",
-        source_url: "https://github.com/bluejacketblackhawk/cleanroom/releases/download/sidecars-2026-08-01/cleanroom-ffmpeg-windows-x86_64-n8.1.2.zip",
+        source_url: "https://github.com/bluejacketblackhawk/cleanroom/releases/download/sidecars-2026-08-01/cleanroom-ffmpeg-windows-x86_64-n8.1.2-22-g94138f6973.zip",
         archive_sha256: Some("6a5b52447573306fde4a4a3c39f52930f81b4a7dd56a3c2ffe0801cbf939f051"),
         archive_member: Some("ffmpeg.exe"),
         binary_sha256: "86f25f2d5487b84ceb994d022a8c2b9424b7042d8c1c0c209a597f561e891392",
