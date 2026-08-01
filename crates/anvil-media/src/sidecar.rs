@@ -133,20 +133,23 @@ pub struct FfmpegPin {
 /// source of truth in code; `pin_json_matches_the_code` asserts it never drifts from
 /// `scripts/ffmpeg-pin.json`.
 pub static FFMPEG_PINS: &[FfmpegPin] = &[
-    // Windows — BtbN win64-lgpl prebuilt (LGPL v3, via --enable-version3). Content preserved
-    // byte-for-byte from the original single-target pin.
+    // Windows — BtbN win64-lgpl prebuilt (LGPL v3, via --enable-version3). The BINARY is
+    // byte-identical to the original audit (binary_sha256 unchanged); only the transport
+    // moved: BtbN prunes old autobuild releases (the original zip 404'd in CI 2026-08-01),
+    // so the audited binary + its LICENSE are re-hosted flat in Cleanroom's own immutable
+    // `sidecars-2026-08-01` release, which archive_sha256 now describes.
     FfmpegPin {
         version: "n8.1.2-22-g94138f6973",
         target: "windows-x86_64",
-        source_url: "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-07-14-13-19/ffmpeg-n8.1.2-22-g94138f6973-win64-lgpl-8.1.zip",
-        archive_sha256: Some("98e6b1d20e083ab34fd275509682fd12b7ea4bd205a7814331704d6feba9a0c4"),
-        archive_member: Some("ffmpeg-n8.1.2-22-g94138f6973-win64-lgpl-8.1/bin/ffmpeg.exe"),
+        source_url: "https://github.com/bluejacketblackhawk/cleanroom/releases/download/sidecars-2026-08-01/cleanroom-ffmpeg-windows-x86_64-n8.1.2.zip",
+        archive_sha256: Some("6a5b52447573306fde4a4a3c39f52930f81b4a7dd56a3c2ffe0801cbf939f051"),
+        archive_member: Some("ffmpeg.exe"),
         binary_sha256: "86f25f2d5487b84ceb994d022a8c2b9424b7042d8c1c0c209a597f561e891392",
         // Windows/PE: the runtime gate stays on the raw hash (Authenticode gets content-hashed
         // when Windows signing lands — see the module docs and ADR-012).
         content_sha256: None,
         license: "LGPL-3.0-or-later",
-        license_file: "ffmpeg-n8.1.2-22-g94138f6973-win64-lgpl-8.1/LICENSE.txt",
+        license_file: "LICENSE.txt",
         configure_line: WINDOWS_CONFIGURE_LINE,
     },
     // macOS arm64 — built from source (LGPL-2.1-or-later); values from build-ffmpeg-macos.sh.

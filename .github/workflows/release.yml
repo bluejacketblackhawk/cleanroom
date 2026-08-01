@@ -261,107 +261,37 @@ jobs:
           if-no-files-found: error
 
   # ===========================================================================================
-  # mac provisioning — ONE arm64 job builds BOTH arches' sidecars, then hands vendor/ to the
-  # per-arch bundle legs as an artifact.  This split is FORCED by the scripts, not a preference:
-  # scripts/build-ffmpeg-macos.sh refuses any non-arm64 host (`uname -m == arm64` guard) and
-  # cross-compiles x86_64 FROM arm64 — so the Intel runner physically cannot build its own ffmpeg.
-  # build-whisper-macos.sh likewise cross-builds x86_64 from arm64; fetch-sherpa-macos.sh stages
-  # the universal2 binary for both. Running all three once here (arm64) yields vendor/ for both
-  # targets. The ~20-min-per-arch from-source ffmpeg build is cached across RUNS (keyed on the pin
-  # JSONs' mac entries) and passed WITHIN a run via a tarball artifact (preserves +x / dylib layout
-  # that upload-artifact would otherwise drop).
+  # mac provisioning — fetch the FROZEN sidecar mirror. The build-from-source model died on
+  # measurement (first two v0.1.1 runs, 2026-08-01): mac ffmpeg/whisper builds are not
+  # byte-reproducible even on the same runner image same-day (relink nondeterminism), so a
+  # static binary pin can never hold across rebuilds — and upstream transports rot too (BtbN
+  # pruned our pinned win64-lgpl zip). The fix for the whole failure class: binaries are built
+  # ONCE (scripts/build-{ffmpeg,whisper}-macos.sh on a mac — kept as the minting tools), audited,
+  # frozen as an immutable `sidecars-YYYY-MM-DD` release on this repo, and CI only ever FETCHES.
+  # This tarball is the verbatim provisioning artifact of run 30717291237 — the exact binaries
+  # scripts/{ffmpeg,whisper}-pin.json describe (member hashes re-recorded from it; the bundle
+  # legs' stage-mac-sidecars.sh still verifies every member against those pins). To mint new
+  # sidecars (version bump / toolchain change): build on a mac, re-record pins with
+  # `cargo run -p anvil-media --example macho_hash`, upload a new dated sidecars release, and
+  # point MIRROR_URL/MIRROR_SHA256 here at it.
   # ===========================================================================================
   provision-mac-sidecars:
-    name: provision mac sidecars (build both arches, arm64 host)
-    runs-on: macos-latest # macOS 15 arm64
+    name: provision mac sidecars (fetch frozen mirror)
+    runs-on: ubuntu-latest # a checksummed download needs no mac
+    env:
+      MIRROR_URL: "https://github.com/bluejacketblackhawk/cleanroom/releases/download/sidecars-2026-08-01/cleanroom-mac-sidecars-2026-08-01.tar.gz"
+      MIRROR_SHA256: "efad44b7fbdb4a54c67ce07e2fcb93f9f071796016d6705600f9875a235aa621"
     steps:
-      - uses: actions/checkout@v4
-
-      # Key the cache on ONLY the pin JSONs' mac SOURCE-side entries — never the recorded
-      # output hashes. ffmpeg/whisper are BUILT from source and not bit-reproducible across
-      # toolchains, so their binary_sha256/content_sha256 get RE-RECORDED whenever the
-      # compiler drifts (the procedure in whisper-pin.json's header). If those output hashes
-      # fed the key, every re-record would evict the very cache holding the binaries the new
-      # pins describe, forcing a fresh (differently-hashed) build — a self-inflicted loop
-      # (this exact loop broke the first v0.1.1 run). sherpa is a fetched prebuilt, so its
-      # full entry (hashes included) IS its source identity and stays in the key.
-      - name: Derive mac-sidecar cache key from pin mac entries (source-side fields only)
-        run: |
-          {
-            jq -S '{ffmpeg: {aarch64: (.targets["macos-aarch64"] | {version, source_url, configure_line, third_party}), x86_64: (.targets["macos-x86_64"] | {version, source_url, configure_line, third_party}), forbidden: .forbidden_configure_markers}}' scripts/ffmpeg-pin.json
-            jq -S '{whisper: {aarch64: (.targets["macos-aarch64"] | {version, source_url, source_ref, build_flags, deployment_target}), x86_64: (.targets["macos-x86_64"] | {version, source_url, source_ref, build_flags, deployment_target})}}' scripts/whisper-pin.json
-            jq -S '{sherpa: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"], models: .models}}' scripts/sherpa-pin.json
-          } > mac-pins.lock
-          echo "mac-pins.lock:"; cat mac-pins.lock
-
-      - name: Cache provisioned mac vendor/ (+ from-source build caches)
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            vendor
-            .cache/ffmpeg-build
-            .cache/whisper
-            .cache/sherpa
-          key: mac-sidecars-v1-${{ hashFiles('mac-pins.lock') }}
-          # Same-source older caches (e.g. the run whose binaries the pins were just
-          # re-recorded from) restore as a starting point: the build scripts reuse the
-          # restored .cache/ artifacts, keeping rebuild output byte-stable with the pins.
-          restore-keys: |
-            mac-sidecars-v1-
-
-      # ffmpeg: LGPL-clean, built from source per-arch (no LGPL mac prebuilt exists). ~20 min/arch.
-      # whisper.cpp: v1.9.1 has no mac release → built from source per-arch. sherpa: universal2
-      # prebuilt, staged for both. All three verify sha256 against the pins and fail on mismatch.
-      - name: Provision ffmpeg + whisper + sherpa for both arches (skips on cache hit)
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          set -euxo pipefail
-          scripts/build-ffmpeg-macos.sh          # both arches (arm64 native + x86_64 cross)
-          scripts/build-whisper-macos.sh         # both arches (--arch both is the default)
-          scripts/fetch-sherpa-macos.sh          # universal2 → staged into both target dirs
-
-      # Diarization models are OS-independent and bundled on mac too, but no mac script fetches
-      # them (fetch-sherpa-macos.sh stages only the binary; the model step lives in the
-      # Windows-only fetch-sherpa.ps1). Provision them here straight from the pin's models[] —
-      # scripts/sherpa-pin.json stays the single source of truth (values are READ, never
-      # duplicated), and each file is hard-verified against its pinned sha256. (See report: ideally
-      # a scripts/ mac model fetcher owns this; until then the release workflow does, hash-gated.)
-      - name: Provision diarization models (hash-verified against scripts/sherpa-pin.json)
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Fetch + verify the frozen sidecar mirror
         run: |
           set -euo pipefail
-          MODELS_DIR="vendor/models"; mkdir -p "$MODELS_DIR"
-          count="$(jq '.models | length' scripts/sherpa-pin.json)"
-          for i in $(seq 0 $((count - 1))); do
-            dest="$(jq -r ".models[$i].dest" scripts/sherpa-pin.json)"
-            onnx_sha="$(jq -r ".models[$i].onnx_sha256" scripts/sherpa-pin.json)"
-            url="$(jq -r ".models[$i].source_url" scripts/sherpa-pin.json)"
-            member="$(jq -r ".models[$i].archive_member // empty" scripts/sherpa-pin.json)"
-            arch_sha="$(jq -r ".models[$i].archive_sha256 // empty" scripts/sherpa-pin.json)"
-            out="$MODELS_DIR/$dest"
-            if [ -f "$out" ] && [ "$(shasum -a 256 "$out" | awk '{print $1}')" = "$onnx_sha" ]; then
-              echo "ok (cached) $dest"; continue
-            fi
-            tmp="$(mktemp)"; curl -fL --retry 5 --retry-all-errors -o "$tmp" "$url"
-            if [ -n "$member" ]; then
-              got="$(shasum -a 256 "$tmp" | awk '{print $1}')"
-              [ "$got" = "$arch_sha" ] || { echo "::error::$dest archive sha256 mismatch (want $arch_sha got $got)"; exit 1; }
-              ex="$(mktemp -d)"; tar -xjf "$tmp" -C "$ex"; cp "$ex/$member" "$out"; rm -rf "$ex"
-            else
-              cp "$tmp" "$out"
-            fi
-            got="$(shasum -a 256 "$out" | awk '{print $1}')"
-            [ "$got" = "$onnx_sha" ] || { echo "::error::$dest onnx sha256 mismatch (want $onnx_sha got $got)"; exit 1; }
-            echo "provisioned $dest ($got)"; rm -f "$tmp"
-          done
-          echo "models present:"; ls -la "$MODELS_DIR"
+          curl -fL --retry 5 --retry-all-errors -o mac-vendor.tar.gz "$MIRROR_URL"
+          got="$(sha256sum mac-vendor.tar.gz | awk '{print $1}')"
+          [ "$got" = "$MIRROR_SHA256" ] || { echo "::error::sidecar mirror sha256 mismatch (want $MIRROR_SHA256 got $got)"; exit 1; }
+          echo "ok: mirror tarball $got"
 
-      # Tar (not raw upload-artifact) to preserve exec bits + the bin/ + lib/ dylib layout the
-      # sidecars need; the bundle legs untar it back into place.
-      - name: Pack vendor/ for the bundle legs
-        run: tar -czf mac-vendor.tar.gz vendor
-
+      # Tarball (not raw upload-artifact) preserves exec bits + the bin/ + lib/ dylib layout;
+      # the bundle legs untar it back into place, then stage + per-member pin-verify as before.
       - uses: actions/upload-artifact@v4
         with:
           name: mac-vendor-${{ github.ref_name }}
