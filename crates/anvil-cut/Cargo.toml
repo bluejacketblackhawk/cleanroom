@@ -18,3 +18,4 @@ tracing.workspace = true
 
 [dev-dependencies]
 hound = "3"
+serde_json.workspace = true

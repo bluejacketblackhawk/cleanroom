@@ -47,9 +47,14 @@ use anvil_project::edl::Edl;
 mod filler;
 mod render;
 mod silence;
+mod split;
 
-pub use render::{apply, apply_with_crossfade, DEFAULT_CROSSFADE_SECS};
+pub use render::{
+    apply, apply_with_crossfade, apply_with_edge_fades, DEFAULT_CROSSFADE_SECS,
+    DEFAULT_EDGE_FADE_SECS,
+};
 pub use silence::detect_silence;
+pub use split::{detect_cut_words, partition, Part, SegmentPlan, SplitOptions};
 
 /// A half-open time span `[start, end)` in seconds. Used for silence runs and music/protected
 /// regions. Structurally identical to `anvil_dsp::SilenceRun`, so analysis output maps
@@ -107,8 +112,9 @@ pub struct Word {
     pub confidence: f32,
 }
 
-/// What a [`Cut`] removes. Serializes to `"silence"` / `"filler"` (03 §5, snake_case
-/// contract).
+/// What a [`Cut`] removes. Serializes to `"silence"` / `"filler"` / `"cut_word"` (03 §5 and
+/// 09 §2, snake_case contract — additive variants only, so older project files keep
+/// deserializing).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CutKind {
@@ -116,14 +122,18 @@ pub enum CutKind {
     Silence,
     /// A removed disfluency (`um`, `uh`, …).
     Filler,
+    /// A spoken cut word (09): removed entirely, and a **split boundary** — [`partition`]
+    /// splits the timeline at every accepted one.
+    CutWord,
 }
 
 impl CutKind {
-    /// The wire string (`"silence"` / `"filler"`).
+    /// The wire string (`"silence"` / `"filler"` / `"cut_word"`).
     pub fn as_str(self) -> &'static str {
         match self {
             CutKind::Silence => "silence",
             CutKind::Filler => "filler",
+            CutKind::CutWord => "cut_word",
         }
     }
 }
@@ -316,12 +326,18 @@ pub fn plan(
 
 /// Merge cuts whose edges fall within `merge_gap`. A silence cut absorbs an abutting filler
 /// (and the breath between them); the merged span keeps the structural [`CutKind::Silence`]
-/// where either side is silence.
+/// where either side is silence. [`CutKind::CutWord`] cuts are never merged into — they are
+/// split *boundaries* (09 §3), and absorbing one into a silence cut would silently delete a
+/// boundary; [`partition`] owns their geometry instead.
 fn merge_cuts(cuts: Vec<Cut>, merge_gap: f64) -> Vec<Cut> {
     let mut merged: Vec<Cut> = Vec::with_capacity(cuts.len());
     for cut in cuts {
         match merged.last_mut() {
-            Some(prev) if cut.start <= prev.end + merge_gap => {
+            Some(prev)
+                if cut.start <= prev.end + merge_gap
+                    && prev.kind != CutKind::CutWord
+                    && cut.kind != CutKind::CutWord =>
+            {
                 prev.end = prev.end.max(cut.end);
                 prev.accepted = prev.accepted && cut.accepted;
                 if cut.kind == CutKind::Silence {

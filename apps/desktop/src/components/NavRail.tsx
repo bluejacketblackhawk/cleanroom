@@ -4,6 +4,7 @@ const ICONS: Record<View, string> = {
   // Small, calm, single-color line icons — no orange, matches the emerald accent.
   master: "M4 12h16M4 6h16M4 18h10",
   transcript: "M5 4h14v2H5V4Zm0 5h14v2H5V9Zm0 5h9v2H5v-2Zm0 5h6v2H5v-2Z",
+  split: "M7 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm1.7-11.3L20 17M8.7 16.3 20 7",
   metadata: "M4 5h16M4 5v14M4 19h16M9 5v14M13 9h4M13 12h4M13 15h2",
   multitrack: "M3 6h6M3 12h11M3 18h8M15 4v5M15 15v5M20 6.5v11",
   clip_studio: "M4 5h11v14H4V5Zm11 4 5-2.5v11L15 15",

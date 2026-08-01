@@ -17,11 +17,15 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 
 use anvil_batch::{BatchItemState, BatchQueue, OutputSettings, WatchRule, WatchService};
+use anvil_cut::{detect_cut_words, partition, CutPlan, SilenceInput, SplitOptions};
 use anvil_dsp::BlockSink;
-use anvil_media::{AudioBuffer, OutputFormat, OutputSpec, StreamEncoder};
+use anvil_media::{
+    export_video_segment, is_video_container, AudioBuffer, FfmpegSidecar, OutputFormat, OutputSpec,
+    StreamEncoder,
+};
 use anvil_project::{
     compliance::{ComplianceInput, LoudnessMeasurement, ModuleDecision},
-    preset, Preset, Tier,
+    preset, Preset, Settings, Tier,
 };
 
 // ---- Stable exit codes (handoff/02-ARCHITECTURE.md §CLI, ADR-007) -------------------------
@@ -99,6 +103,57 @@ enum Command {
         /// the PDF is written alongside with a `.pdf` extension).
         #[arg(long)]
         report: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Split a recording at every spoken cut word (handoff/09): say a chosen word between
+    /// teleprompter scripts, and each script exports as its own mastered file — the cut
+    /// word (and the dead air around it) deleted entirely. Audio cuts are
+    /// sample-accurate; video segments re-encode (H.264) for frame accuracy.
+    #[command(after_help = PRESET_HELP)]
+    Split {
+        input: PathBuf,
+        /// The cut word or phrase to split on. Falls back to the default saved in
+        /// Settings.
+        #[arg(long)]
+        cut_word: Option<String>,
+        /// Output directory (default: `<input stem>_segments/` beside the source).
+        #[arg(short = 'o', long = "out")]
+        out_dir: Option<PathBuf>,
+        /// Per-segment master preset (default: spotify_youtube for video sources —
+        /// shorts platforms — and podcast_stereo for audio).
+        #[arg(long)]
+        preset: Option<String>,
+        #[arg(long, value_parser = ["fast", "standard", "studio"])]
+        tier: Option<String>,
+        /// Split only — skip the per-segment master chain.
+        #[arg(long)]
+        no_master: bool,
+        /// How many segments you expect (how many scripts you read). Mismatches warn,
+        /// never block.
+        #[arg(long)]
+        expected: Option<usize>,
+        /// Naming template. Tokens: {n}, {nn}, {name}, {first_words}.
+        #[arg(long)]
+        name_template: Option<String>,
+        /// Whisper model id or .bin path for the transcription pass.
+        #[arg(long)]
+        model: Option<String>,
+        /// Exact matching only — disable fuzzy (edit-distance-1) matches.
+        #[arg(long)]
+        exact: bool,
+        /// Also split on fuzzy/low-confidence/inside-silence matches (headless has no
+        /// review UI; by default only exact, confident matches split).
+        #[arg(long)]
+        accept_all: bool,
+        /// Minimum ASR word confidence for an auto-accepted match (default 0.6).
+        #[arg(long)]
+        min_confidence: Option<f32>,
+        /// Audio output format for audio sources (wav/mp3/flac/opus/ogg/m4a/m4b);
+        /// default keeps the source extension. Video keeps its container (webm → mp4:
+        /// the segment encoder is H.264, which webm cannot carry).
+        #[arg(long)]
+        format: Option<String>,
         #[arg(long)]
         json: bool,
     },
@@ -1150,6 +1205,469 @@ fn emit_pull_status(json: bool, status: &str, pack: &str, detail: &str, path: Op
     }
 }
 
+// ---- split (handoff/09) -----------------------------------------------------------------------
+
+/// Strip Windows-illegal and control characters, collapse whitespace, and trim trailing
+/// dots/spaces — a template-rendered segment name must be a portable filename. Empty after
+/// cleaning ⇒ `"part"`.
+fn sanitize_segment_name(raw: &str) -> String {
+    let cleaned: String = raw
+        .chars()
+        .map(|c| match c {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => ' ',
+            c if c.is_control() => ' ',
+            c => c,
+        })
+        .collect();
+    let collapsed = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+    let trimmed = collapsed
+        .trim_matches(|c: char| c == '.' || c == ' ')
+        .to_string();
+    if trimmed.is_empty() {
+        "part".into()
+    } else {
+        trimmed
+    }
+}
+
+/// Render the 09 §5 naming template for segment `n` of `total` (1-based). `{nn}` widens to
+/// three digits past 99 segments so lexicographic order stays numeric.
+fn render_segment_name(
+    template: &str,
+    n: usize,
+    total: usize,
+    source_stem: &str,
+    first_words: &str,
+) -> String {
+    let width = if total >= 100 { 3 } else { 2 };
+    let rendered = template
+        .replace("{nn}", &format!("{n:0width$}"))
+        .replace("{n}", &n.to_string())
+        .replace("{name}", source_stem)
+        .replace("{first_words}", first_words);
+    sanitize_segment_name(&rendered)
+}
+
+/// The output extension for a segment (09 §5): video keeps its container (webm → mp4 — the
+/// segment encoder is H.264, which webm cannot carry); audio keeps the source extension
+/// unless `--format` overrides, falling back to wav for un-encodable sources.
+fn segment_extension(input: &Path, is_video: bool, format: Option<&str>) -> String {
+    let source_ext = input
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase);
+    if is_video {
+        return match source_ext.as_deref() {
+            Some("webm") | None => "mp4".into(),
+            Some(ext) => ext.into(),
+        };
+    }
+    if let Some(f) = format {
+        return f.trim_start_matches('.').to_ascii_lowercase();
+    }
+    match source_ext.as_deref() {
+        Some(
+            ext
+            @ ("wav" | "wave" | "mp3" | "flac" | "opus" | "ogg" | "oga" | "m4a" | "aac" | "m4b"),
+        ) => ext.into(),
+        _ => "wav".into(),
+    }
+}
+
+/// `dir/stem.ext`, suffixing ` (2)`, ` (3)`, … rather than ever overwriting (09 §5:
+/// "collision-safe").
+fn unique_segment_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
+    let mut path = dir.join(format!("{stem}.{ext}"));
+    let mut k = 2;
+    while path.exists() {
+        path = dir.join(format!("{stem} ({k}).{ext}"));
+        k += 1;
+    }
+    path
+}
+
+/// Interleave and write 16-bit PCM WAV — the split path's WAV writer (the master path's
+/// [`WavStreamSink`] is block-streaming; a rendered part is already in memory).
+fn write_wav_16(path: &Path, audio: &AudioBuffer) -> Result<(), String> {
+    let spec = hound::WavSpec {
+        channels: audio.channel_count().max(1) as u16,
+        sample_rate: audio.sample_rate(),
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+    let mut writer = hound::WavWriter::create(path, spec).map_err(|e| e.to_string())?;
+    let channels = audio.channel_count();
+    for f in 0..audio.frames() {
+        for c in 0..channels {
+            let s = audio.channel(c)[f];
+            writer
+                .write_sample((s.clamp(-1.0, 1.0) * 32767.0).round() as i16)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    writer.finalize().map_err(|e| e.to_string())
+}
+
+/// `anvil split` — the 09 §1 CLI flow: decode → analyze (silence runs) → transcribe →
+/// detect cut words → partition → per-part render + master + encode. Headless
+/// auto-accepts only exact, confident, VAD-overlapping matches; `--accept-all` takes the
+/// rest (the desktop review UI is the interactive counterpart).
+#[allow(clippy::too_many_arguments)]
+fn cmd_split(args: SplitArgs) -> u8 {
+    let SplitArgs {
+        input,
+        cut_word,
+        out_dir,
+        preset: preset_name,
+        tier,
+        no_master,
+        expected,
+        name_template,
+        model,
+        exact,
+        accept_all,
+        min_confidence,
+        format,
+        json,
+    } = args;
+
+    if !input.exists() {
+        return fail(
+            EXIT_BAD_INPUT,
+            &format!("input not found: {}", input.display()),
+        );
+    }
+
+    // Settings supply the saved default cut word + naming template (09 §1 "picking the
+    // cutword … in settings").
+    let settings = Settings::load(&Settings::default_path()).unwrap_or_default();
+    let Some(phrase) = cut_word
+        .filter(|w| !w.trim().is_empty())
+        .or_else(|| settings.default_cut_word.clone())
+        .filter(|w| !w.trim().is_empty())
+    else {
+        return fail(
+            EXIT_BAD_INPUT,
+            "no cut word: pass --cut-word <word>, or save a default in the desktop app's \
+             Settings",
+        );
+    };
+
+    let is_video = is_video_container(&input);
+    // Video sources default to the shorts-platform target (09 §1: spotify_youtube −14).
+    let effective_preset = preset_name.as_deref().or(if is_video {
+        Some(preset::SPOTIFY_YOUTUBE_ID)
+    } else {
+        None
+    });
+    let (preset, _preset_id) = match resolve_preset(effective_preset, tier.as_deref()) {
+        Ok(v) => v,
+        Err(bad) => {
+            return fail(
+                EXIT_MISSING,
+                &format!("unknown preset '{bad}' — run `anvil split --help` for the shipped ids"),
+            )
+        }
+    };
+
+    // Decode the whole take (random access for parts; a teleprompter session is minutes,
+    // not hours) and analyze it for the silence map the boundary geometry needs.
+    let buffer = match anvil_media::decode_to_buffer(&input) {
+        Ok(b) => b,
+        Err(e) => {
+            return fail(
+                classify_media_error(&e),
+                &format!("could not read {}: {e}", input.display()),
+            )
+        }
+    };
+    if buffer.is_empty() {
+        return fail(EXIT_BAD_INPUT, "no audio in the input");
+    }
+    let duration = buffer.frames() as f64 / f64::from(buffer.sample_rate().max(1));
+    let analysis = anvil_dsp::analyze_buffer(&buffer);
+    let silence = SilenceInput::from_runs(analysis.silence_runs.iter().map(|r| (r.start, r.end)));
+
+    // Transcribe (staged 16 kHz mono, same as `anvil transcribe`).
+    let staged = std::env::temp_dir().join(format!("anvil-split-{}.wav", std::process::id()));
+    if let Err(e) = write_wav_16k_mono(&staged, &buffer) {
+        return fail(EXIT_INTERNAL, &format!("could not stage audio: {e}"));
+    }
+    let mut asr_opts = anvil_asr::TranscribeOptions::default();
+    if let Some(m) = model.as_deref() {
+        let as_path = Path::new(m);
+        asr_opts.model = if as_path.is_file() {
+            Some(as_path.to_path_buf())
+        } else {
+            anvil_asr::locate_model(m)
+        };
+        if asr_opts.model.is_none() {
+            let _ = std::fs::remove_file(&staged);
+            return fail(
+                EXIT_MISSING,
+                &format!("model not found: {m} (pass a .bin path or install the pack)"),
+            );
+        }
+    }
+    let transcript = match anvil_asr::transcribe(&staged, &asr_opts) {
+        Ok(t) => t,
+        Err(e) => {
+            let _ = std::fs::remove_file(&staged);
+            let code = if e.to_string().to_lowercase().contains("not found") {
+                EXIT_MISSING
+            } else {
+                EXIT_INTERNAL
+            };
+            return fail(
+                code,
+                &format!("transcribe failed: {e} (try `anvil models pull whisper-small`)"),
+            );
+        }
+    };
+    let _ = std::fs::remove_file(&staged);
+
+    let words: Vec<anvil_cut::Word> = transcript
+        .words
+        .iter()
+        .map(|w| anvil_cut::Word {
+            text: w.text.clone(),
+            start: w.start,
+            end: w.end,
+            confidence: w.confidence,
+        })
+        .collect();
+
+    let mut split_opts = SplitOptions::for_phrase(phrase.clone());
+    split_opts.fuzzy = !exact;
+    if let Some(mc) = min_confidence {
+        split_opts.min_confidence = mc;
+    }
+
+    let mut cuts = detect_cut_words(&words, &silence, &split_opts);
+    if accept_all {
+        for c in &mut cuts {
+            c.accepted = true;
+        }
+    }
+    let accepted = cuts.iter().filter(|c| c.accepted).count();
+    let possible = cuts.len() - accepted;
+
+    if accepted == 0 {
+        let hint = if possible > 0 {
+            format!(
+                "found {possible} possible match(es) of '{phrase}' but none were exact and \
+                 confident — inspect them below, or re-run with --accept-all",
+            )
+        } else {
+            format!(
+                "cut word '{phrase}' was not found in the transcript — check the spelling, \
+                 pick a more distinctive word, or record it more clearly"
+            )
+        };
+        if json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "cut_word": phrase,
+                    "matches": cuts,
+                    "segments": [],
+                }))
+                .unwrap()
+            );
+        } else {
+            eprintln!("{hint}");
+            for c in &cuts {
+                eprintln!("  possible  {:>8.2}s  \"{}\"", c.start, c.label);
+            }
+        }
+        return EXIT_OK;
+    }
+
+    let plan = CutPlan {
+        cuts: cuts.clone(),
+        source_duration: duration,
+    };
+    let segment_plan = partition(&plan, &words, &silence, &split_opts);
+    let total = segment_plan.parts.len();
+
+    let expected_mismatch = expected.is_some_and(|e| e != total);
+    if expected_mismatch {
+        eprintln!(
+            "warning: expected {} segment(s) but the cut word produced {total} — check the \
+             possible-match list or your recording",
+            expected.unwrap_or(0),
+        );
+    }
+
+    // Output directory + naming.
+    let stem = input
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("recording")
+        .to_string();
+    let dir = out_dir.unwrap_or_else(|| {
+        input
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join(format!("{stem}_segments"))
+    });
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        return fail(
+            EXIT_INTERNAL,
+            &format!("could not create {}: {e}", dir.display()),
+        );
+    }
+    let template = name_template
+        .filter(|t| !t.trim().is_empty())
+        .unwrap_or_else(|| settings.split_name_template.clone());
+    let ext = segment_extension(&input, is_video, format.as_deref());
+
+    // Video parts need the sidecar once, up front.
+    let sidecar = if is_video {
+        match FfmpegSidecar::locate() {
+            Ok(s) => Some(s),
+            Err(e) => return fail(classify_media_error(&e), &format!("ffmpeg sidecar: {e}")),
+        }
+    } else {
+        None
+    };
+
+    let mut seg_json = Vec::with_capacity(total);
+    for part in &segment_plan.parts {
+        let n = part.index + 1;
+        let name = render_segment_name(&template, n, total, &stem, &part.title());
+        let out_path = unique_segment_path(&dir, &name, &ext);
+
+        // Render the part's audio from the EDL with edge fades (09 §3).
+        let part_audio = anvil_cut::apply_with_edge_fades(
+            &part.edl,
+            &buffer,
+            anvil_cut::DEFAULT_CROSSFADE_SECS,
+            anvil_cut::DEFAULT_EDGE_FADE_SECS,
+        );
+
+        // Master each part independently (09 §4) unless told not to.
+        let (final_audio, lufs) = if no_master {
+            (part_audio, None)
+        } else {
+            match anvil_dsp::master_buffer(&part_audio, &preset, preset.tier) {
+                Ok(r) => {
+                    let lufs = (
+                        r.report.before.integrated_lufs,
+                        r.report.after.integrated_lufs,
+                    );
+                    (r.audio, Some(lufs))
+                }
+                Err(e) => {
+                    return fail(
+                        classify_dsp_error(&e),
+                        &format!("mastering segment {n} failed: {e}"),
+                    )
+                }
+            }
+        };
+
+        let write_result: Result<(), (u8, String)> = if let Some(sidecar) = sidecar.as_ref() {
+            export_video_segment(
+                sidecar,
+                &input,
+                part.start,
+                part.end - part.start,
+                &final_audio,
+                &out_path,
+                |_| {},
+            )
+            .map_err(|e| (classify_media_error(&e), e.to_string()))
+        } else if ext == "wav" || ext == "wave" {
+            write_wav_16(&out_path, &final_audio).map_err(|e| (EXIT_INTERNAL, e))
+        } else {
+            match resolve_output_format(&out_path) {
+                Ok(OutTarget::Wav) => {
+                    write_wav_16(&out_path, &final_audio).map_err(|e| (EXIT_INTERNAL, e))
+                }
+                Ok(OutTarget::Encoded(fmt)) => {
+                    anvil_media::encode(&final_audio, &OutputSpec::new(fmt), &out_path)
+                        .map_err(|e| (classify_media_error(&e), e.to_string()))
+                }
+                Err(msg) => Err((EXIT_BAD_INPUT, msg)),
+            }
+        };
+        if let Err((code, msg)) = write_result {
+            return fail(
+                code,
+                &format!("segment {n} ({}): {msg}", out_path.display()),
+            );
+        }
+
+        if !json {
+            match lufs {
+                Some((before, after)) => println!(
+                    "segment {n}/{total}  {}  ({before:.1} → {after:.1} LUFS)",
+                    out_path.display()
+                ),
+                None => println!("segment {n}/{total}  {}", out_path.display()),
+            }
+        }
+        seg_json.push(serde_json::json!({
+            "index": part.index,
+            "title": part.title(),
+            "path": out_path.display().to_string(),
+            "start": part.start,
+            "end": part.end,
+            "duration": part.kept_secs(),
+            "lufs_in": lufs.map(|l| l.0),
+            "lufs_out": lufs.map(|l| l.1),
+        }));
+    }
+
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "cut_word": phrase,
+                "matches": cuts,
+                "accepted_matches": accepted,
+                "possible_matches": possible,
+                "expected_mismatch": expected_mismatch,
+                "out_dir": dir.display().to_string(),
+                "segments": seg_json,
+            }))
+            .unwrap()
+        );
+    } else {
+        println!(
+            "split {} into {total} segment(s) -> {}   ({accepted} cut(s){})",
+            input.display(),
+            dir.display(),
+            if possible > 0 {
+                format!(", {possible} possible match(es) skipped — see --accept-all")
+            } else {
+                String::new()
+            }
+        );
+    }
+    EXIT_OK
+}
+
+/// `anvil split`'s arguments, bundled — the field-per-flag struct keeps [`cmd_split`]'s
+/// signature honest and the `main` dispatch a plain struct build.
+struct SplitArgs {
+    input: PathBuf,
+    cut_word: Option<String>,
+    out_dir: Option<PathBuf>,
+    preset: Option<String>,
+    tier: Option<String>,
+    no_master: bool,
+    expected: Option<usize>,
+    name_template: Option<String>,
+    model: Option<String>,
+    exact: bool,
+    accept_all: bool,
+    min_confidence: Option<f32>,
+    format: Option<String>,
+    json: bool,
+}
+
 /// `anvil transcribe` — whisper.cpp word-level transcription (M3). Stages a 16 kHz mono WAV
 /// (what whisper reads best), runs the sidecar, and writes SRT/VTT and/or prints TXT/JSON.
 fn cmd_transcribe(
@@ -1346,6 +1864,37 @@ fn main() -> ExitCode {
             report.as_deref(),
             json,
         ),
+        Command::Split {
+            input,
+            cut_word,
+            out_dir,
+            preset,
+            tier,
+            no_master,
+            expected,
+            name_template,
+            model,
+            exact,
+            accept_all,
+            min_confidence,
+            format,
+            json,
+        } => cmd_split(SplitArgs {
+            input,
+            cut_word,
+            out_dir,
+            preset,
+            tier,
+            no_master,
+            expected,
+            name_template,
+            model,
+            exact,
+            accept_all,
+            min_confidence,
+            format,
+            json,
+        }),
         Command::Transcribe {
             input,
             model,
@@ -1813,6 +2362,83 @@ mod tests {
     #[test]
     fn cmd_models_pull_unknown_pack_is_missing() {
         assert_eq!(cmd_models_pull("does-not-exist", false), EXIT_MISSING);
+    }
+
+    // ---- split helpers (09) ----
+
+    #[test]
+    fn segment_name_sanitizes_illegal_characters() {
+        assert_eq!(
+            sanitize_segment_name("01 why: nobody/holds*the\\door?"),
+            "01 why nobody holds the door"
+        );
+        assert_eq!(sanitize_segment_name("  spaced   out  "), "spaced out");
+        assert_eq!(sanitize_segment_name("trailing dots..."), "trailing dots");
+        assert_eq!(sanitize_segment_name("<>:*?"), "part");
+    }
+
+    #[test]
+    fn segment_template_renders_tokens() {
+        assert_eq!(
+            render_segment_name("{nn} {first_words}", 3, 12, "take", "hello world"),
+            "03 hello world"
+        );
+        assert_eq!(
+            render_segment_name("{n}-{name}", 3, 12, "take", ""),
+            "3-take"
+        );
+        // {nn} widens past 99 segments so lexicographic order stays numeric.
+        assert_eq!(render_segment_name("{nn}", 7, 120, "take", ""), "007");
+        // An empty render falls back to a usable name rather than an empty filename.
+        assert_eq!(
+            render_segment_name("{first_words}", 1, 2, "take", ""),
+            "part"
+        );
+    }
+
+    #[test]
+    fn segment_extension_rules() {
+        let p = |s: &str| PathBuf::from(s);
+        // Video keeps its container; webm becomes mp4 (H.264 segments).
+        assert_eq!(segment_extension(&p("a.mp4"), true, None), "mp4");
+        assert_eq!(segment_extension(&p("a.MOV"), true, None), "mov");
+        assert_eq!(segment_extension(&p("a.webm"), true, None), "mp4");
+        // Audio keeps the source extension, `--format` overrides, unknown falls to wav.
+        assert_eq!(segment_extension(&p("a.m4a"), false, None), "m4a");
+        assert_eq!(segment_extension(&p("a.mp3"), false, Some("flac")), "flac");
+        assert_eq!(segment_extension(&p("a.xyz"), false, None), "wav");
+        assert_eq!(segment_extension(&p("a.mp3"), false, Some(".OPUS")), "opus");
+    }
+
+    #[test]
+    fn unique_segment_path_never_overwrites() {
+        let tmp = tempfile::tempdir().unwrap();
+        let first = unique_segment_path(tmp.path(), "01 intro", "wav");
+        assert_eq!(first, tmp.path().join("01 intro.wav"));
+        std::fs::write(&first, b"x").unwrap();
+        let second = unique_segment_path(tmp.path(), "01 intro", "wav");
+        assert_eq!(second, tmp.path().join("01 intro (2).wav"));
+    }
+
+    #[test]
+    fn cmd_split_missing_input_is_bad_input() {
+        let code = cmd_split(SplitArgs {
+            input: PathBuf::from("does-not-exist.wav"),
+            cut_word: Some("kumquat".into()),
+            out_dir: None,
+            preset: None,
+            tier: None,
+            no_master: false,
+            expected: None,
+            name_template: None,
+            model: None,
+            exact: false,
+            accept_all: false,
+            min_confidence: None,
+            format: None,
+            json: false,
+        });
+        assert_eq!(code, EXIT_BAD_INPUT);
     }
 
     // ---- exit code contract sanity ----

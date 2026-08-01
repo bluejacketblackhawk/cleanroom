@@ -6,6 +6,7 @@
 export type View =
   | "master"
   | "transcript"
+  | "split"
   | "metadata"
   | "multitrack"
   | "clip_studio"
@@ -25,6 +26,7 @@ export interface ViewDef {
 export const VIEWS: ViewDef[] = [
   { id: "master", label: "Master", hint: "One file at a time" },
   { id: "transcript", label: "Transcript", hint: "Words, fillers, silence" },
+  { id: "split", label: "Split", hint: "One take → many clips, split at your cut word" },
   { id: "metadata", label: "Chapters", hint: "Chapters, tags, cover art, AI shownotes" },
   { id: "multitrack", label: "Multitrack", hint: "Align, duck, and mix several tracks" },
   { id: "clip_studio", label: "Clip Studio", hint: "A shareable clip in under a minute" },

@@ -3,12 +3,15 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { check as checkForUpdate } from "@tauri-apps/plugin-updater";
 import Switch from "../components/Switch";
 import {
+  appSettingsGet,
+  appSettingsSet,
   exportDiagnostics,
   settingsGetIntegrationStatus,
   settingsSetAutostart,
   settingsSetContextMenu,
   settingsSetFileAssociations,
   type AppInfo,
+  type AppSettings,
 } from "../api";
 
 interface SettingsScreenProps {
@@ -41,6 +44,21 @@ export default function SettingsScreen({ info }: SettingsScreenProps) {
   const [updateStatus, setUpdateStatus] = useState<AsyncStatus>("idle");
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
+  // Splitting defaults (handoff/09 §1 "picking the cutword … in settings") — loaded from
+  // and saved to the engine's settings.json via app_settings_get/set.
+  const [splitSettings, setSplitSettings] = useState<AppSettings | null>(null);
+  const [splitSaveError, setSplitSaveError] = useState<string | null>(null);
+
+  const saveSplitSettings = async (next: AppSettings) => {
+    setSplitSettings(next);
+    setSplitSaveError(null);
+    try {
+      await appSettingsSet(next);
+    } catch (e) {
+      setSplitSaveError(typeof e === "string" ? e : "Couldn't save the splitting settings.");
+    }
+  };
+
   useEffect(() => {
     // Only autostart has a cheap "is it actually on" read (one registry value); the
     // context-menu/file-association toggles are N per-extension keys with no single flag
@@ -50,6 +68,11 @@ export default function SettingsScreen({ info }: SettingsScreenProps) {
       .then((s) => setAutostart(s.autostart))
       .catch(() => {
         /* best-effort — the toggle still works, it just starts from "off" */
+      });
+    appSettingsGet()
+      .then(setSplitSettings)
+      .catch(() => {
+        /* best-effort — the Splitting card shows a loading note until this lands */
       });
   }, []);
 
@@ -224,6 +247,68 @@ export default function SettingsScreen({ info }: SettingsScreenProps) {
           <p role="alert" className="text-xs text-red-500">
             {integrationError}
           </p>
+        )}
+      </section>
+
+      <section
+        aria-labelledby="settings-splitting-heading"
+        className="flex flex-col gap-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+      >
+        <div>
+          <h2 id="settings-splitting-heading" className="text-sm font-semibold">
+            Splitting
+          </h2>
+          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+            Read several scripts in one take, say your cut word between them, and the Split
+            screen turns the recording into one finished file per script.
+          </p>
+        </div>
+        {splitSettings ? (
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              Default cut word
+              <input
+                type="text"
+                value={splitSettings.default_cut_word ?? ""}
+                onChange={(e) =>
+                  setSplitSettings({ ...splitSettings, default_cut_word: e.target.value })
+                }
+                onBlur={() => void saveSplitSettings(splitSettings)}
+                placeholder="e.g. kumquat"
+                className="w-44 rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium">
+              File naming
+              <input
+                type="text"
+                value={splitSettings.split_name_template}
+                onChange={(e) =>
+                  setSplitSettings({ ...splitSettings, split_name_template: e.target.value })
+                }
+                onBlur={() => void saveSplitSettings(splitSettings)}
+                className="w-56 rounded-lg border border-neutral-300 bg-transparent px-3 py-2 text-sm dark:border-neutral-700"
+              />
+              <span className="font-normal text-neutral-500 dark:text-neutral-400">
+                Tokens: {"{nn}"} number · {"{name}"} recording · {"{first_words}"} opening words
+              </span>
+            </label>
+            <div className="flex items-center gap-3 pb-1">
+              <Switch
+                checked={splitSettings.split_master_default}
+                onChange={(next) =>
+                  void saveSplitSettings({ ...splitSettings, split_master_default: next })
+                }
+                label="Master each segment by default"
+              />
+              <span className="text-sm">Master each segment by default</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">Loading…</p>
+        )}
+        {splitSaveError && (
+          <p className="text-xs text-red-600 dark:text-red-400">{splitSaveError}</p>
         )}
       </section>
 

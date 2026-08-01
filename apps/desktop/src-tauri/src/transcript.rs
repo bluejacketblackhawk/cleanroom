@@ -91,12 +91,16 @@ impl From<anvil_asr::Transcript> for Transcript {
     }
 }
 
-/// "silence" | "filler" — matches the contract's lowercase string values on the wire.
+/// "silence" | "filler" | "cut_word" — matches the contract's string values on the wire
+/// (additive: `cut_word` arrived with the Split screen, handoff/09; `plan_cuts` itself
+/// never emits it).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CutKind {
     Silence,
     Filler,
+    #[serde(rename = "cut_word")]
+    CutWord,
 }
 
 impl From<anvil_cut::CutKind> for CutKind {
@@ -104,6 +108,7 @@ impl From<anvil_cut::CutKind> for CutKind {
         match k {
             anvil_cut::CutKind::Silence => CutKind::Silence,
             anvil_cut::CutKind::Filler => CutKind::Filler,
+            anvil_cut::CutKind::CutWord => CutKind::CutWord,
         }
     }
 }
@@ -179,6 +184,21 @@ impl TranscriptState {
     pub fn snapshot(&self) -> Option<Transcript> {
         self.last_transcript.read().ok().and_then(|g| g.clone())
     }
+
+    /// Cache a transcript produced outside `transcribe` (the Split screen transcribes when
+    /// nothing is cached — one transcription then serves both screens). Invalidates any cut
+    /// plan computed against the old word timings, same as `transcribe`.
+    pub(crate) fn store_transcript(&self, t: Transcript) -> Result<(), String> {
+        *self
+            .last_transcript
+            .write()
+            .map_err(|_| "transcript lock poisoned")? = Some(t);
+        *self
+            .last_plan
+            .write()
+            .map_err(|_| "cut plan lock poisoned")? = None;
+        Ok(())
+    }
 }
 
 // ---- transcribe ----------------------------------------------------------------------
@@ -196,7 +216,7 @@ impl TranscriptState {
 /// probes already find a pack downloaded here; the explicit `models_dir` check stays as a
 /// belt-and-suspenders for the exact directory this app installs into. Returns `None` — never
 /// downloads — if nothing installed matches any of the three.
-fn resolve_transcribe_model(model: &str, models_dir: &Path) -> Option<PathBuf> {
+pub(crate) fn resolve_transcribe_model(model: &str, models_dir: &Path) -> Option<PathBuf> {
     if let Some(path) = anvil_asr::locate_model(model) {
         return Some(path);
     }
@@ -211,7 +231,7 @@ fn resolve_transcribe_model(model: &str, models_dir: &Path) -> Option<PathBuf> {
 }
 
 /// A `-of`-unique staging path in the system temp dir (whisper.cpp reads a file, not stdin).
-fn unique_temp_wav_path() -> PathBuf {
+pub(crate) fn unique_temp_wav_path() -> PathBuf {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos())
@@ -226,7 +246,7 @@ fn unique_temp_wav_path() -> PathBuf {
 /// WAV. Mirrors `anvil-cli`'s `cmd_transcribe`/`write_wav_16k_mono` staging step exactly;
 /// duplicated here rather than shared because `apps/desktop` doesn't depend on `anvil-cli`
 /// (and this crate is out of scope for a shared-helper refactor per the M3 UI-wiring brief).
-fn write_wav_16k_mono(path: &Path, audio: &AudioBuffer) -> Result<(), String> {
+pub(crate) fn write_wav_16k_mono(path: &Path, audio: &AudioBuffer) -> Result<(), String> {
     let channels = audio.channel_count().max(1);
     let frames = audio.frames();
     let mut mono = vec![0.0f32; frames];

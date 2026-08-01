@@ -854,3 +854,95 @@ export interface IntegrationStatus {
 export function settingsGetIntegrationStatus(): Promise<IntegrationStatus> {
   return invoke<IntegrationStatus>("settings_get_integration_status");
 }
+
+// ---- Split (handoff/09: cut-word splitting) ----------------------------------------------
+
+export interface SplitMatch {
+  start: number;
+  end: number;
+  /** What the ASR actually heard — a fuzzy row shows e.g. "Comquad". */
+  label: string;
+  accepted: boolean;
+}
+
+export interface SplitPart {
+  index: number;
+  start: number;
+  end: number;
+  /** First transcribed words of the part — becomes the file name. */
+  title: string;
+  duration: number;
+}
+
+export interface SplitPreview {
+  matches: SplitMatch[];
+  parts: SplitPart[];
+  /** Video sources re-encode per segment (H.264) and keep their container. */
+  is_video: boolean;
+}
+
+/** Find every spoken instance of `cutWord` in the open file. Reuses the Transcript tab's
+ * cached transcript when one exists; otherwise transcribes with `model` first (and caches
+ * it for the Transcript tab — one transcription serves both). */
+export function splitDetect(cutWord: string, model: string): Promise<SplitPreview> {
+  return invoke<SplitPreview>("split_detect", { cutWord, model });
+}
+
+/** Re-preview segments with a new complete set of accepted match indices (accept/reject
+ * toggles) — instant, no re-analysis. */
+export function splitPreview(acceptedIndices: number[]): Promise<SplitPreview> {
+  return invoke<SplitPreview>("split_preview", { acceptedIndices });
+}
+
+export interface SplitSegmentResult {
+  index: number;
+  title: string;
+  path: string;
+  duration: number;
+  lufs_in: number | null;
+  lufs_out: number | null;
+}
+
+export interface SplitRenderResult {
+  out_dir: string;
+  segments: SplitSegmentResult[];
+}
+
+/** Render the accepted split: each segment edge-faded, optionally fully mastered (its own
+ * loudness pass — every short stands alone), and written as its own file. Progress streams
+ * over {@link onSplitProgress}. */
+export function splitRender(
+  acceptedIndices: number[],
+  outDir: string | null,
+  master: boolean,
+  presetRef: string | null,
+): Promise<SplitRenderResult> {
+  return invoke<SplitRenderResult>("split_render", { acceptedIndices, outDir, master, presetRef });
+}
+
+export interface SplitProgressEvent {
+  index: number;
+  total: number;
+  /** Overall completion in [0, 1] across all segments. */
+  fraction: number;
+}
+
+export function onSplitProgress(cb: (e: SplitProgressEvent) => void): Promise<UnlistenFn> {
+  return listen<SplitProgressEvent>("split://progress", (e) => cb(e.payload));
+}
+
+/** App-level settings persisted by the engine (anvil_project::Settings) — the Split
+ * defaults live here ("picking the cutword … in settings"). */
+export interface AppSettings {
+  default_cut_word: string | null;
+  split_name_template: string;
+  split_master_default: boolean;
+}
+
+export function appSettingsGet(): Promise<AppSettings> {
+  return invoke<AppSettings>("app_settings_get");
+}
+
+export function appSettingsSet(patch: AppSettings): Promise<void> {
+  return invoke("app_settings_set", { patch });
+}

@@ -31,8 +31,8 @@ Use an **LGPL-only build** (no `--enable-gpl` components: no x264/x265/etc., no 
 
 ## 3. Code signing & distribution (owner decisions needed, see §6)
 
-- **Windows:** unsigned = SmartScreen scare = death for a polished free app. Options: **SignPath.io free OSS signing** (recommended, ☐ apply early — approval takes time) or Azure Trusted Signing (~$10/mo). Decide by M5.B.
-- **macOS:** notarization requires Apple Developer Program (**$99/yr — the project's only unavoidable cost** if we want normal double-click install). Without it: right-click-open instructions (hurts "polished"). Recommend paying. Decide by M6.D.
+- **Windows: SignPath OSS — decided 2026-08-01.** Owner is submitting the free OSS-signing application for `bluejacketblackhawk/cleanroom`; on approval, wire SignPath's signing step into `.github/workflows/release.yml` (NSIS installer + portable exe). Until then releases ship unsigned with the documented SmartScreen path.
+- **macOS: notarize — decided 2026-08-01.** Developer ID signing already implemented (ADR-012); owner is storing the one-time notary credential (`xcrun notarytool store-credentials anvil-notary` — the profile name ADR-012/`sign-mac.mjs` expect). Thereafter releases notarize automatically; verify the next DMG with `spctl -a -vv`.
 - Tauri updater keys: generate offline, store with owner (password manager), CI signs manifests only — document key ceremony in `docs/release.md`.
 
 ## 4. Naming & trademark
@@ -57,13 +57,15 @@ Use an **LGPL-only build** (no `--enable-gpl` components: no x264/x265/etc., no 
 | Auphonic/Adobe ship something big mid-build | Quarterly competitive re-check task in STATE.md; parity matrix is versioned — additions become roadmap items, not scope creep mid-milestone. |
 | Corpus too weak → overfit tuning | Grow corpus from every beta complaint (06 §7); synthetic degradation generator keeps paired refs honest. |
 
-## 6. Open questions for the owner (answer in STATE.md when ready; none block M0–M4)
+## 6. Decision record
 
-1. **Final product name** (needed M7; candidates in §4).
-2. **Apple Developer $99/yr** for notarization — yes/no (needed M6).
-3. **Windows signing**: OK to apply for SignPath OSS cert under your GitHub org? (needed M5; apply during M2–M3 — lead time.)
-4. **Mac hardware access** for M6 QA (which machines do you have? Intel iMac RAM?). CI covers builds; final QA needs real ears on real hardware.
-5. **GitHub org/repo name** to create (also affects updater endpoints).
-6. Can you record/collect **real bad recordings** for the corpus (your voice, your rooms, Zoom calls with consenting friends)? Biggest quality lever available.
-7. **win-arm64**: care or cut? (Stretch in M5.)
-8. Post-1.0 priority vote: Linux vs REST daemon vs publishing integrations vs episode assembly.
+**Owner directive 2026-08-01: questions for the owner are NEVER parked in docs (this section used to do exactly that — banned). Ask in chat the moment the need appears, with the exact step spelled out, or verify/run it yourself. This section records outcomes only.**
+
+1. **Product name:** Cleanroom, repo `bluejacketblackhawk/cleanroom` (renamed 2026-07-15; §4's naming rules stand for any future rename).
+2. **Apple Developer / notarization:** account exists, Developer ID signing shipped (ADR-012); notary credential stored by owner 2026-08-01 → notarization automatic thereafter (§3).
+3. **Windows signing:** SignPath OSS, chosen 2026-08-01 (§3).
+4. **Mac hardware:** M6 shipped per-arch DMGs, QA'd (08-MAC, ADR-012).
+5. **GitHub org/repo:** `bluejacketblackhawk/cleanroom`, releases live.
+6. **Corpus:** synthetic-first via `eval/synth.py` (reproduces from scratch); real recordings fold in through beta feedback (06 §7), not as a parked owner task.
+7. **win-arm64:** in — 6-artifact ship, owner directive 2026-07-15 (ADR-012).
+8. **Post-1.0 priority:** owner sets it in chat per feature; current: Cut-Word Split (09).

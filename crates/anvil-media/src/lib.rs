@@ -39,7 +39,10 @@ pub use sidecar::{
     content_pinned_sha256, current_pin, gpl_markers_in, macho_content_sha256, pinned_sha256,
     sha256_file, FfmpegPin, FfmpegSidecar, FFMPEG_PINS, GPL_CONFIGURE_MARKERS,
 };
-pub use video::{extract_audio, extract_audio_blocks, remux_with_audio, remux_with_audio_spec};
+pub use video::{
+    export_video_segment, extract_audio, extract_audio_blocks, is_video_container, probe_video,
+    remux_with_audio, remux_with_audio_spec, VideoInfo,
+};
 
 /// Planar 32-bit float audio. `channels[c][frame]` — outer index is the channel, inner
 /// is the sample. All channels share the same length ([`AudioBuffer::frames`]).

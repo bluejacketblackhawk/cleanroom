@@ -18,6 +18,8 @@ anvil-media.workspace = true
 anvil-dsp.workspace = true
 anvil-asr.workspace = true
 anvil-batch.workspace = true
+# `split`: cut-word detection + partitioning (09).
+anvil-cut.workspace = true
 # `models list`/`pull`: the whisper catalog + installed-state come from `anvil-asr`, the Qwen
 # shownotes catalog from `anvil-llm`, and the real hash-verified download from the sanctioned
 # `anvil-models` network crate (shared byte-for-byte with the desktop Models screen).

@@ -34,6 +34,7 @@ import PresetsScreen from "./screens/PresetsScreen";
 import ModelsScreen from "./screens/ModelsScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import TranscriptScreen from "./screens/TranscriptScreen";
+import SplitScreen from "./screens/SplitScreen";
 import MetadataScreen from "./screens/MetadataScreen";
 import MultitrackScreen from "./screens/MultitrackScreen";
 import ClipStudioScreen from "./screens/ClipStudioScreen";
@@ -505,6 +506,17 @@ export default function App() {
             fileName={fileName}
             sourcePath={sourcePath}
             totalFrames={totalFrames}
+            isPlaying={isPlaying}
+            onPlay={() => void handlePlay()}
+            onPause={() => void handlePause()}
+          />
+        )}
+
+        {view === "split" && (
+          <SplitScreen
+            media={media}
+            fileName={fileName}
+            sourcePath={sourcePath}
             isPlaying={isPlaying}
             onPlay={() => void handlePlay()}
             onPause={() => void handlePause()}

@@ -90,8 +90,9 @@ fn matches_at(norm: &[String], i: usize, phrase: &[&str]) -> bool {
 }
 
 /// Lowercase and strip surrounding punctuation/whitespace (ASR often attaches `,`/`.`), so
-/// `"Um,"` matches `um`. Keeps internal apostrophes (e.g. contractions) intact.
-fn normalize(text: &str) -> String {
+/// `"Um,"` matches `um`. Keeps internal apostrophes (e.g. contractions) intact. Shared with
+/// the cut-word matcher (`crate::split`), which normalizes the user's phrase the same way.
+pub(crate) fn normalize(text: &str) -> String {
     text.trim()
         .trim_matches(|c: char| !c.is_alphanumeric() && c != '\'')
         .to_lowercase()

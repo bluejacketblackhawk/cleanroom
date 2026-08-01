@@ -67,10 +67,32 @@ impl Default for Preset {
 }
 
 /// Application settings persisted to the platform config dir.
+///
+/// Every field added after 1.0 carries `#[serde(default)]` so a settings.json written by an
+/// older build keeps loading (the additive contract the desktop Settings screen relies on).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Settings {
     pub schema_version: u32,
     pub default_preset: String,
+    /// Default cut word/phrase for the Split flow (09 §1 "picking the cutword … in
+    /// settings") — `None` until the user picks one.
+    #[serde(default)]
+    pub default_cut_word: Option<String>,
+    /// Split output naming template (09 §5). Tokens: `{n}`, `{nn}`, `{name}`,
+    /// `{first_words}`.
+    #[serde(default = "default_split_name_template")]
+    pub split_name_template: String,
+    /// Whether Split masters each segment (09 §4) — on unless the user opts out.
+    #[serde(default = "default_split_master")]
+    pub split_master_default: bool,
+}
+
+fn default_split_name_template() -> String {
+    "{nn} {first_words}".into()
+}
+
+fn default_split_master() -> bool {
+    true
 }
 
 impl Default for Settings {
@@ -78,6 +100,9 @@ impl Default for Settings {
         Self {
             schema_version: PROJECT_SCHEMA_VERSION,
             default_preset: "podcast-stereo".into(),
+            default_cut_word: None,
+            split_name_template: default_split_name_template(),
+            split_master_default: default_split_master(),
         }
     }
 }
@@ -150,10 +175,30 @@ mod tests {
         let settings = Settings {
             schema_version: PROJECT_SCHEMA_VERSION,
             default_preset: "custom-preset".into(),
+            default_cut_word: Some("kumquat".into()),
+            split_name_template: "{n}-{first_words}".into(),
+            split_master_default: false,
         };
         settings.save(&path).unwrap();
 
         assert_eq!(Settings::load(&path).unwrap(), settings);
+    }
+
+    /// The additive-settings contract: a settings.json written before the split fields
+    /// existed still loads, landing on the documented defaults.
+    #[test]
+    fn settings_without_split_fields_still_load() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("settings.json");
+        std::fs::write(
+            &path,
+            r#"{ "schema_version": 1, "default_preset": "podcast-stereo" }"#,
+        )
+        .unwrap();
+        let s = Settings::load(&path).unwrap();
+        assert_eq!(s.default_cut_word, None);
+        assert_eq!(s.split_name_template, "{nn} {first_words}");
+        assert!(s.split_master_default);
     }
 
     #[test]

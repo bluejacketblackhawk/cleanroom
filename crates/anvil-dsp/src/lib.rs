@@ -188,17 +188,41 @@ pub fn master_with_diarization(
     memory: Option<&VoiceMemory>,
 ) -> Result<MasterResult, DspError> {
     let buf = decode_to_buffer(input)?;
+    master_buffer_with_diarization(&buf, preset, tier, diarization, memory)
+}
+
+/// Master an already-decoded buffer: same analysis, auto-decisions, chain, and report as
+/// [`master`] — just without the decode. This is the per-part render path for cut-word
+/// splitting (09 §4): each part is rendered from the EDL in memory and mastered
+/// independently, so every part stands alone with its own two-pass loudness.
+pub fn master_buffer(
+    buf: &AudioBuffer,
+    preset: &Preset,
+    tier: Tier,
+) -> Result<MasterResult, DspError> {
+    master_buffer_with_diarization(buf, preset, tier, None, None)
+}
+
+/// [`master_buffer`] with speakers — the buffer-based sibling of
+/// [`master_with_diarization`], which now delegates here after decoding.
+pub fn master_buffer_with_diarization(
+    buf: &AudioBuffer,
+    preset: &Preset,
+    tier: Tier,
+    diarization: Option<&Diarization>,
+    memory: Option<&VoiceMemory>,
+) -> Result<MasterResult, DspError> {
     if buf.is_empty() {
         return Err(DspError::Empty);
     }
-    let report = analyze_buffer(&buf);
+    let report = analyze_buffer(buf);
     let mut config = auto_configure_with_diarization(&report, preset, tier, diarization, memory);
     // Learn while we work: a master with speakers also hands back the profiles for next time.
     if let Some(spk) = config.speaker.as_mut() {
         spk.profile_autoeq = config.autoeq.or(Some(AutoEqConfig::default()));
     }
     let mut chain = Chain::new(buf.sample_rate());
-    let outcome = chain.render(&buf, &config);
+    let outcome = chain.render(buf, &config);
     let master_report = build_master_report(report, &config, &outcome);
     Ok(MasterResult {
         audio: outcome.audio,

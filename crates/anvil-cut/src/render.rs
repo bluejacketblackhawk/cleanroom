@@ -9,6 +9,11 @@ use anvil_project::edl::{Edl, Segment};
 /// Crossfade length at every cut join (03 §5: "60 ms equal-power crossfades").
 pub const DEFAULT_CROSSFADE_SECS: f64 = 0.060;
 
+/// Edge fade at the very start/end of a rendered split part (09 §3: "segment audio edges get
+/// a 15 ms fade-in/out"). Part edges are hard boundaries with no crossfade partner, so
+/// without this a part that begins mid-room-tone would start with a click.
+pub const DEFAULT_EDGE_FADE_SECS: f64 = 0.015;
+
 /// Render `edl`'s kept segments against `buffer` with the default 60 ms crossfade (03 §5).
 /// The EDL is single-source (index 0, produced by [`crate::to_edl`]); segment times are in
 /// source seconds and clamped to the buffer.
@@ -52,6 +57,34 @@ pub fn apply_with_crossfade(edl: &Edl, buffer: &AudioBuffer, crossfade_secs: f64
         .collect();
 
     AudioBuffer::from_planar(out_channels, sr)
+}
+
+/// [`apply_with_crossfade`] plus a raised-cosine fade-in/out at the outer edges of the
+/// rendered output — the render path for split parts (09 §3). Interior joins keep their
+/// equal-power crossfades; only the first/last `edge_fade_secs` are shaped. The fade is
+/// clamped to half the rendered length so a tiny part never fades past its midpoint.
+pub fn apply_with_edge_fades(
+    edl: &Edl,
+    buffer: &AudioBuffer,
+    crossfade_secs: f64,
+    edge_fade_secs: f64,
+) -> AudioBuffer {
+    let mut out = apply_with_crossfade(edl, buffer, crossfade_secs);
+    let frames = out.frames();
+    let fade = ((edge_fade_secs * f64::from(out.sample_rate())).round() as usize).min(frames / 2);
+    if fade == 0 {
+        return out;
+    }
+    for channel in out.planar_mut() {
+        for i in 0..fade {
+            // Raised-cosine 0→1 ramp, sampled at bin centers like the crossfade weights.
+            let t = (i as f32 + 0.5) / fade as f32;
+            let w = 0.5 * (1.0 - (std::f32::consts::PI * t).cos());
+            channel[i] *= w;
+            channel[frames - 1 - i] *= w;
+        }
+    }
+    out
 }
 
 /// Fold one channel's kept ranges into a single track, crossfading each seam.
@@ -208,6 +241,32 @@ mod tests {
         let a = apply(&edl, &buf);
         let b = apply(&edl, &buf);
         assert_eq!(a, b);
+    }
+
+    /// Edge fades (09 §3): a rendered split part starts and ends at (near) zero, with the
+    /// interior untouched and unity restored right past the fade.
+    #[test]
+    fn edge_fades_shape_the_part_boundaries() {
+        use anvil_project::edl::{Edl, EdlSource, Segment};
+        let sr = 48_000;
+        let buf = AudioBuffer::from_planar(vec![vec![1.0_f32; sr as usize]], sr);
+        let mut edl = Edl::new(vec![EdlSource::new("s")]);
+        edl.segments = vec![Segment::kept(0, 0.0, 1.0)];
+        let out = apply_with_edge_fades(&edl, &buf, DEFAULT_CROSSFADE_SECS, DEFAULT_EDGE_FADE_SECS);
+        assert_eq!(out.frames(), buf.frames());
+        let ch = out.channel(0);
+        assert!(ch[0] < 0.02, "start not faded: {}", ch[0]);
+        assert!(
+            ch[ch.len() - 1] < 0.02,
+            "end not faded: {}",
+            ch[ch.len() - 1]
+        );
+        assert!((ch[ch.len() / 2] - 1.0).abs() < 1e-6, "interior touched");
+        let fade = (DEFAULT_EDGE_FADE_SECS * f64::from(sr)).round() as usize;
+        assert!(
+            (ch[fade] - 1.0).abs() < 1e-6,
+            "unity not restored past the fade"
+        );
     }
 
     /// Crossfade shortens output by one fade length per join (two kept segments = one join).

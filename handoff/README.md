@@ -28,6 +28,8 @@ This handoff is written for a developer, or a small team working in parallel lan
 | [05-MILESTONES.md](05-MILESTONES.md) | M0→M7 phased plan, task lanes with work assignments, exit criteria, demo scripts | starting any milestone |
 | [06-QUALITY-EVAL.md](06-QUALITY-EVAL.md) | Golden corpus, objective metrics, perf budgets, CI matrix, release checklists | M0 (eval harness is built FIRST) |
 | [07-RISKS-LEGAL.md](07-RISKS-LEGAL.md) | License table with verify-tasks, signing strategy, model redistribution, technical risks, open questions for the owner | M0, and again before each release |
+| [08-MAC.md](08-MAC.md) | macOS port (M6) kickoff — historical, M6 shipped | — |
+| [09-CUTWORD-SPLIT.md](09-CUTWORD-SPLIT.md) | Cut-Word Split: say a chosen word between teleprompter scripts → one recording splits into N mastered files, word deleted (post-1.0 feature, owner-requested 2026-08-01) | building the split feature |
 
 ## Non-negotiable constraints (from the product owner)
 
@@ -47,7 +49,8 @@ This handoff is written for a developer, or a small team working in parallel lan
 - **Parallelism:** Within a milestone, lanes marked ∥ in 05 are independent — run them as parallel lanes with worktree isolation. Never run two lanes on the same crate at once.
 - **Verification gates:** Every task's exit criteria in 05 are commands + expected results. A task is done when the gate passes, not when the code compiles. DSP tasks additionally require an eval-subset run.
 - **Lane briefs:** Give each lane the relevant handoff file section verbatim, not a paraphrase. These specs are the source of truth.
-- **When the spec is silent:** prefer (in order): the wedge (rule 3) → Auphonic's observed behavior → EBU/AES conventions → ask the owner in STATE.md's "Questions" section rather than blocking.
+- **When the spec is silent:** prefer (in order): the wedge (rule 3) → Auphonic's observed behavior → EBU/AES conventions → ask the owner **in chat, immediately, with the exact step spelled out**.
+- **Owner questions (directive 2026-08-01):** NEVER park questions or requests for the owner in any doc, spec, or STATE.md section — that's dead friction nobody re-reads. If it's verifiable or runnable, do it yourself; if it genuinely needs the owner, ask in the session the moment it comes up. Docs record decisions and facts only.
 
 ## First session script (M0 kickoff)
 

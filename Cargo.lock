@@ -225,6 +225,7 @@ dependencies = [
  "anvil-asr",
  "anvil-batch",
  "anvil-core",
+ "anvil-cut",
  "anvil-dsp",
  "anvil-llm",
  "anvil-media",
@@ -262,6 +263,7 @@ dependencies = [
  "anvil-project",
  "hound",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
  "tracing",
 ]

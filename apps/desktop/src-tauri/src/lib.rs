@@ -43,6 +43,7 @@ mod multitrack;
 mod presets;
 mod settings;
 mod shownotes;
+mod split;
 mod transcript;
 mod watch;
 
@@ -689,6 +690,7 @@ pub fn run() {
         .manage(watch_state)
         .manage(models::ModelsState::new())
         .manage(transcript::TranscriptState::new())
+        .manage(split::SplitState::new())
         .manage(multitrack::MultitrackState::new())
         .manage(guard::GuardState::new())
         .setup(|app| {
@@ -742,6 +744,11 @@ pub fn run() {
             models::models_list,
             models::download_model,
             models::download_model_cancel,
+            split::split_detect,
+            split::split_preview,
+            split::split_render,
+            split::app_settings_get,
+            split::app_settings_set,
             transcript::transcribe,
             transcript::diarize,
             transcript::plan_cuts,
