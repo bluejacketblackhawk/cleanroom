@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { check as checkForUpdate } from "@tauri-apps/plugin-updater";
 import Switch from "../components/Switch";
 import {
@@ -359,18 +358,6 @@ export default function SettingsScreen({ info }: SettingsScreenProps) {
         </div>
 
         <div className="flex flex-col items-start gap-2">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void openUrl("https://ko-fi.com/bluejacketblackhawk")}
-              className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-            >
-              ☕ Buy me a coffee
-            </button>
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-              Cleanroom is free forever — this is just a tip jar.
-            </span>
-          </div>
           <button
             type="button"
             onClick={() => void handleExportDiagnostics()}
