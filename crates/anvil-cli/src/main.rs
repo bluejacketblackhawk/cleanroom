@@ -113,8 +113,9 @@ enum Command {
     #[command(after_help = PRESET_HELP)]
     Split {
         input: PathBuf,
-        /// The cut word or phrase to split on. Falls back to the default saved in
-        /// Settings.
+        /// The cut word or phrase to split on. Commas separate alternatives — e.g.
+        /// "furthermore, nevertheless, regardless" splits on any of the three. Falls
+        /// back to the default saved in Settings.
         #[arg(long)]
         cut_word: Option<String>,
         /// Output directory (default: `<input stem>_segments/` beside the source).

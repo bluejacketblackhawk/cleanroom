@@ -214,7 +214,9 @@ export default function SplitScreen({
         )}
         <p className="w-full text-xs text-neutral-500 dark:text-neutral-400">
           Pick a word you'd never say in a script — "kumquat", "flamingo". Multi-word
-          phrases work too. Save a default in Settings so this is one click next time.
+          phrases work, and commas separate alternatives ("furthermore, nevertheless,
+          regardless" splits on any of them). Save a default in Settings so this is one
+          click next time.
         </p>
       </section>
 

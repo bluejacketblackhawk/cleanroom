@@ -68,6 +68,9 @@ const TITLE_WORDS: usize = 4;
 pub struct SplitOptions {
     /// The cut word or phrase, verbatim from the user (settings / `--cut-word`). Matched
     /// against [`normalize`]d tokens, so case and attached punctuation never matter.
+    /// **Commas separate alternatives**: `"furthermore, nevertheless, regardless"` splits
+    /// on any of the three — one detect pass, three distinct cut words (the
+    /// one-continuous-sentence demo formula). No comma ⇒ one phrase, unchanged.
     pub phrase: String,
     /// Also propose edit-distance-1 matches on tokens ≥ 5 chars ("cumquat" for "kumquat").
     /// Fuzzy matches always arrive unaccepted (09 §2).
@@ -107,12 +110,19 @@ impl SplitOptions {
         }
     }
 
-    /// The normalized phrase tokens. Empty if the phrase is blank (no matching happens).
-    fn tokens(&self) -> Vec<String> {
+    /// The normalized token sequences to match: one per comma-separated alternative in
+    /// [`SplitOptions::phrase`]. Blank alternatives drop out; a blank phrase yields no
+    /// alternatives (no matching happens).
+    fn alternatives(&self) -> Vec<Vec<String>> {
         self.phrase
-            .split_whitespace()
-            .map(normalize)
-            .filter(|t| !t.is_empty())
+            .split(',')
+            .map(|alt| {
+                alt.split_whitespace()
+                    .map(normalize)
+                    .filter(|t| !t.is_empty())
+                    .collect::<Vec<String>>()
+            })
+            .filter(|tokens| !tokens.is_empty())
             .collect()
     }
 }
@@ -164,8 +174,8 @@ pub struct SegmentPlan {
 /// low-confidence / inside-silence matches arrive unaccepted for the review UI. Blank
 /// phrase ⇒ no matches. Deterministic.
 pub fn detect_cut_words(words: &[Word], silence: &SilenceInput, opts: &SplitOptions) -> Vec<Cut> {
-    let tokens = opts.tokens();
-    if tokens.is_empty() {
+    let alternatives = opts.alternatives();
+    if alternatives.is_empty() {
         return Vec::new();
     }
 
@@ -173,7 +183,11 @@ pub fn detect_cut_words(words: &[Word], silence: &SilenceInput, opts: &SplitOpti
     let mut cuts = Vec::new();
     let mut i = 0;
     while i < words.len() {
-        match match_phrase_at(&norm, words, i, &tokens, opts.fuzzy) {
+        // First matching alternative at this position wins (listed order).
+        match alternatives
+            .iter()
+            .find_map(|tokens| match_phrase_at(&norm, words, i, tokens, opts.fuzzy))
+        {
             Some((end_idx, exact)) => {
                 let start = words[i].start;
                 let end = words[end_idx].end;
@@ -753,6 +767,68 @@ mod tests {
             word("script.", 2.2, 2.6, 0.95),
         ];
         assert!(detect_cut_words(&split_apart, &silence, &opts).is_empty());
+    }
+
+    /// The one-continuous-sentence demo formula (09): comma-separated alternatives make
+    /// three *distinct* connector words each a boundary in a single pass — embedded in
+    /// flowing speech (no silence anywhere), exact confident matches still split, and the
+    /// trailing sign-off cut word leaves no empty part.
+    #[test]
+    fn comma_alternatives_split_a_continuous_sentence() {
+        let rows: &[(&str, f64)] = &[
+            ("I", 0.0),
+            ("recorded", 0.4),
+            ("three", 0.8),
+            ("videos", 1.2),
+            ("furthermore,", 1.6),
+            ("the", 2.0),
+            ("app", 2.4),
+            ("deletes", 2.8),
+            ("words", 3.2),
+            ("nevertheless", 3.6),
+            ("this", 4.0),
+            ("was", 4.4),
+            ("one", 4.8),
+            ("take", 5.2),
+            ("regardless", 5.6),
+        ];
+        let words: Vec<Word> = rows
+            .iter()
+            .map(|&(t, s)| word(t, s, s + 0.35, 0.93))
+            .collect();
+        let silence = SilenceInput::default(); // continuous speech: no runs at all
+        let opts = SplitOptions::for_phrase("furthermore, nevertheless, regardless");
+
+        let cuts = detect_cut_words(&words, &silence, &opts);
+        assert_eq!(cuts.len(), 3, "{cuts:?}");
+        assert!(
+            cuts.iter().all(|c| c.accepted),
+            "embedded exact+confident splits"
+        );
+        assert_eq!(cuts[0].label, "furthermore,");
+        assert_eq!(cuts[1].label, "nevertheless");
+        assert_eq!(cuts[2].label, "regardless");
+
+        let plan = plan_from(cuts, 5.95);
+        let sp = partition(&plan, &words, &silence, &opts);
+        assert_eq!(sp.parts.len(), 3, "trailing cut word leaves no empty part");
+        assert_eq!(
+            sp.parts[0].title_words,
+            vec!["i", "recorded", "three", "videos"]
+        );
+        assert_eq!(
+            sp.parts[1].title_words,
+            vec!["the", "app", "deletes", "words"]
+        );
+        assert_eq!(sp.parts[2].title_words, vec!["this", "was", "one", "take"]);
+        // With no surrounding silence the removal is exactly each word's span: segment
+        // edges butt against the connector's start/end.
+        assert!((sp.parts[0].end - 1.6).abs() < 1e-9);
+        assert!((sp.parts[1].start - 1.95).abs() < 1e-9);
+
+        // Single-phrase calls are unchanged (no comma ⇒ one alternative).
+        let single = SplitOptions::for_phrase("nevertheless");
+        assert_eq!(detect_cut_words(&words, &silence, &single).len(), 1);
     }
 
     /// The merged-pair fallback never swallows a real neighboring word: "a kumquat" in
