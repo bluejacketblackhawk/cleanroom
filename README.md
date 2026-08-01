@@ -52,6 +52,10 @@ The Windows build is unsigned, so SmartScreen will say "unknown publisher" — *
 
 [All files, version-pinned builds + SHA-256 checksums →](https://github.com/bluejacketblackhawk/cleanroom/releases/latest)
 
+## Free forever (tip jar optional)
+
+No accounts, no credits, no trial that expires — that's the whole point. If Cleanroom is saving you the $11–89/month the cloud tools charge, you can [buy me a coffee ☕](https://ko-fi.com/bluejacketblackhawk). One-time, no strings, and the downloads above are identical either way.
+
 ## One click, and it sounds mastered
 
 Drop an audio or video file, press **Master**, export. That one button runs the whole chain locally: two-pass loudness to a broadcast target (EBU R128, true-peak safe), AI denoise (DeepFilterNet3) that pulls the room, hiss, and fan out from behind your voice, and adaptive leveling so a quiet guest and a loud host land at the same volume. On a noisy demo episode that's −30 LUFS with a −39 dB noise floor, one click brings it to a dead-on −16 LUFS with the floor pushed down past −67 dB, no clipping. Then flip the **A/B** toggle to hear exactly what it did, per module, sample-aligned. Everything else — tiers, batch, transcription, multitrack — is progressive disclosure on top. The default path is three clicks and nothing else.

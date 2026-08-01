@@ -69,3 +69,4 @@ Use an **LGPL-only build** (no `--enable-gpl` components: no x264/x265/etc., no 
 6. **Corpus:** synthetic-first via `eval/synth.py` (reproduces from scratch); real recordings fold in through beta feedback (06 §7), not as a parked owner task.
 7. **win-arm64:** in — 6-artifact ship, owner directive 2026-07-15 (ADR-012).
 8. **Post-1.0 priority:** owner sets it in chat per feature; current: Cut-Word Split (09).
+9. **Monetization (decided 2026-08-01):** free/MIT stands, never full commercial. Tips via Ko-fi (`ko-fi.com/bluejacketblackhawk` — README, About screen, FUNDING.yml) plus an optional owner-run pay-what-you-want store mirror of the identical installers; GitHub downloads stay free and first-class.
