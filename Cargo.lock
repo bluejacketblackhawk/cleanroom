@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-ai"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "anvil-media",
@@ -175,7 +175,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-asr"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "serde",
@@ -187,7 +187,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-audio"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "anvil-media",
@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-batch"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "anvil-dsp",
@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-asr",
  "anvil-batch",
@@ -239,7 +239,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crossbeam-channel",
  "dirs 5.0.1",
@@ -255,7 +255,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-cut"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-asr",
  "anvil-core",
@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-asr",
  "anvil-audio",
@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-dsp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-ai",
  "anvil-asr",
@@ -324,7 +324,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-llm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-asr",
  "anvil-core",
@@ -337,7 +337,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-media"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "flacenc",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-models"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-asr",
  "anvil-core",
@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-multitrack"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "anvil-dsp",
@@ -383,7 +383,7 @@ dependencies = [
 
 [[package]]
 name = "anvil-project"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anvil-core",
  "printpdf",
