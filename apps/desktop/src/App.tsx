@@ -199,12 +199,14 @@ export default function App() {
   }, []);
 
   // Tauri v2 drag-and-drop: the payload carries OS file paths, which we hand to Rust.
-  // Only the Master screen owns file drops — Batch/Watch/Presets/Models each register
-  // their own drop handling (or none) while they're the active view, so a drop over the
-  // Batch screen doesn't also try to open it as a single Master file.
+  // A drop loads the session on EVERY screen (owner rule 2026-08-01: any feature accepts
+  // a file directly — mastering is a suggestion, never a prerequisite; a pre-mixed file
+  // can go straight to Split/Transcript/Clip Studio). The only screens where the global
+  // handler stands down are Batch and Multitrack, which register their own multi-file
+  // drop semantics while active.
   useEffect(() => {
     const unlisten = getCurrentWebview().onDragDropEvent((event) => {
-      if (view !== "master") return;
+      if (view === "batch" || view === "multitrack") return;
       const p = event.payload;
       if (p.type === "enter" || p.type === "over") {
         setDragActive(true);

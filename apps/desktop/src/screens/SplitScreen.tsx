@@ -149,9 +149,10 @@ export default function SplitScreen({
         <div className="max-w-md text-center">
           <h1 className="text-lg font-semibold">Split</h1>
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-            Open a recording on the Master screen first. Then, if you said your cut word
-            between scripts, this screen turns the one take into one finished file per
-            script — cut word deleted.
+            Drop a recording here — audio or video. If you said your cut word between
+            scripts (or scenes), this screen turns the one take into one clean file per
+            piece, cut word deleted. Mastering each piece is optional: already-mixed
+            audio comes out untouched apart from the cut.
           </p>
         </div>
       </main>
@@ -309,7 +310,9 @@ export default function SplitScreen({
                   />
                   Master each segment
                   <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                    (denoise + level + loudness{preview.is_video ? ", −14 LUFS for shorts" : ""})
+                    {masterEach
+                      ? `(denoise + level + loudness${preview.is_video ? ", −14 LUFS for shorts" : ""})`
+                      : "(off — a clean cut of your existing mix, audio otherwise untouched)"}
                   </span>
                 </label>
                 <label className="flex flex-1 items-center gap-2 text-xs font-medium">

@@ -268,8 +268,8 @@ export default function TranscriptScreen({
     return (
       <main className="flex flex-1 items-center justify-center p-6">
         <p className="max-w-sm text-center text-sm text-neutral-500 dark:text-neutral-400">
-          Open a file from Master first — the Transcript tab works on whatever is currently
-          loaded.
+          Drop a file anywhere in this window and the Transcript tab works on it — no need
+          to master first.
         </p>
       </main>
     );

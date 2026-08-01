@@ -24,6 +24,8 @@ Nobody else has this as a local one-step (Descript-style tools need manual scene
 
 Interaction budget: with a default cut word saved in Settings, the whole flow is **Drop → Split tab → Detect → Split & Export** — and §7's batch/watch integration gets it to zero clicks.
 
+**Owner rule (2026-08-01, applies app-wide):** a file can be dropped onto *any* screen, including this one — mastering is a suggestion, never a prerequisite. The no-master path is first-class: a pre-mixed file (a director cutting scenes with a spoken cut word) comes out untouched apart from the cut itself, and the UI says so on the toggle.
+
 ### Settings screen additions
 Under a new "Splitting" group: **Default cut word** (text, the owner-requested setting), **default naming template**, **Master each segment** (default on). Stored in `anvil_project::Settings` (§6).
 
