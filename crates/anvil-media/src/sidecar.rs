@@ -180,9 +180,9 @@ pub static FFMPEG_PINS: &[FfmpegPin] = &[
 // --- Per-build values captured by scripts/build-ffmpeg-macos.sh on this machine. -------------
 // (Filled from vendor/ffmpeg/macos-*/sha256.txt and configure_line.txt after the build.)
 const MACOS_AARCH64_SHA256: &str =
-    "350a70538452110ec836ba1af99ab7691a1cfc01ef96a87f91a1baef1fc9cd7e";
+    "c89715afb6e77d0751e5f791e4e2f9525de5ac3f8c69a001a863993afbd03757";
 const MACOS_X86_64_SHA256: &str =
-    "9d91f6d1a695615b26003ebb54192fe151e1ff75b17fbb5fda78f50c9e67421c";
+    "1cee1caf8935d52f070dfac498caef9c8115528590295d66aebea298ddf46467";
 // Signing-independent content hashes (see [`macho_content_sha256`]) of the SAME builds. Computed
 // from the ad-hoc-signed vendor binary; identical for the Developer-ID-signed copy that ships in
 // the `.app` — which is exactly the invariant the runtime gate now depends on (a signed sidecar
@@ -190,9 +190,9 @@ const MACOS_X86_64_SHA256: &str =
 // `pin_json_matches_the_code`, and proven equal to the shipped `.app` copy by
 // `tests/sidecar_pin.rs::signed_bundle_ffmpeg_content_hash_matches_the_pin`.
 const MACOS_AARCH64_CONTENT_SHA256: &str =
-    "eb705d29d54661c3174483e1d2ad02df33a4a38bea3f437895958e7abf4a39de";
+    "415d02aa13ad41dc8303a77a943591f42dcd4af43dfd38eb54dd7260e1ccfdc5";
 const MACOS_X86_64_CONTENT_SHA256: &str =
-    "105dee680ec95f06ef79f2c2ea8fad1e38dec844d6b8401fea1efec4e1b01dab";
+    "da234a2157df3c5f4e9264dfc512e08996d8bbe71e02403286f9cf679c272a01";
 const MACOS_AARCH64_CONFIGURE_LINE: &str = "configuration: --prefix=$REPO/.cache/ffmpeg-build/build/ffmpeg-arm64/out --arch=aarch64 --target-os=darwin --cc='clang -arch arm64 -mmacosx-version-min=12.0' --host-cc=clang --pkg-config=$REPO/.cache/ffmpeg-build/tools/bin/pkgconf --pkg-config-flags=--static --extra-cflags=-I$REPO/.cache/ffmpeg-build/build/deps-arm64/include --extra-ldflags='-L$REPO/.cache/ffmpeg-build/build/deps-arm64/lib ' --extra-libs='-lc++ -framework CoreText -framework CoreFoundation -framework CoreGraphics' --disable-shared --enable-static --disable-autodetect --enable-pthreads --enable-zlib --disable-debug --disable-doc --disable-ffplay --disable-ffprobe --enable-libmp3lame --enable-libopus --enable-libvorbis --enable-libass --enable-videotoolbox";
 const MACOS_X86_64_CONFIGURE_LINE: &str = "configuration: --prefix=$REPO/.cache/ffmpeg-build/build/ffmpeg-x86_64/out --arch=x86_64 --target-os=darwin --cc='clang -arch x86_64 -mmacosx-version-min=12.0' --host-cc=clang --pkg-config=$REPO/.cache/ffmpeg-build/tools/bin/pkgconf --pkg-config-flags=--static --extra-cflags=-I$REPO/.cache/ffmpeg-build/build/deps-x86_64/include --extra-ldflags='-L$REPO/.cache/ffmpeg-build/build/deps-x86_64/lib ' --extra-libs='-lc++ -framework CoreText -framework CoreFoundation -framework CoreGraphics' --disable-shared --enable-static --disable-autodetect --enable-pthreads --enable-zlib --disable-debug --disable-doc --disable-ffplay --disable-ffprobe --enable-libmp3lame --enable-libopus --enable-libvorbis --enable-libass --enable-videotoolbox --enable-cross-compile --disable-x86asm";
 

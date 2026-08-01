@@ -78,16 +78,16 @@
       "license_holder": "The ggml authors (whisper.cpp + ggml)",
       "license_file": "whisper.cpp-LICENSE.txt",
       "binary_member": "whisper-cli",
-      "binary_sha256": "f0083e6b0911cfbf9ac3330f6d46ee822d76cf8059e822bc23705a47086def5d",
-      "content_sha256": "1d7b4f84e67f4a96ed7f7b2d599f494a386d5cc3807af4ca708f4d70e0e8a0d4",
+      "binary_sha256": "058267ba3a9185679748bab1b24fdc0a4a17b128342a16f2ed14b2209814c46c",
+      "content_sha256": "a52a25ec835859ae49dd6a228ca45fdc45c97d0236195cf5e191109fdce5e88d",
       "members": [
-        { "dest": "whisper-cli",           "sha256": "f0083e6b0911cfbf9ac3330f6d46ee822d76cf8059e822bc23705a47086def5d", "content_sha256": "1d7b4f84e67f4a96ed7f7b2d599f494a386d5cc3807af4ca708f4d70e0e8a0d4" },
-        { "dest": "libwhisper.1.dylib",    "sha256": "6649397575863eeebdd295588a0f7e4487374e316fa6db3c75397a5337e7704a", "content_sha256": "f86b5ef7b078633abdb9a9503063e0b88b1963e6e23e90737513ed2cb5ab3a11" },
-        { "dest": "libggml.0.dylib",       "sha256": "c61f45be1aff6b1028ea0b09594622bb17b444a01ca54130fc27d0720490d060", "content_sha256": "5b5c6b96e784d0ae43ca15e9978a924b83d404100084a281f9378f2644fadcf9" },
-        { "dest": "libggml-base.0.dylib",  "sha256": "92b6a47dddc3d36cbbacf1ea14b62cee4b27cf2c1c5b0524ea924e46b4180c92", "content_sha256": "6fd920f0d4cd48954f0e9146be07fa30f3d6467396726adad7b0922e3ad237c6" },
-        { "dest": "libggml-cpu.0.dylib",   "sha256": "71d52adc2c5d019527cbf6f2d9ece13956256f2a005321661851db6ffbb9f7b5", "content_sha256": "4baecf174dd4f25c2ae3d8a213e7f07d54f49d6fed3209a48e24ee2dbe3b2ed5" },
-        { "dest": "libggml-metal.0.dylib", "sha256": "05b6034951768a831751c64b9d0b7e82fc096c490ba9ab2e712ddcacfca64d80", "content_sha256": "008d285d23b735fb0e83c92b887d07d2c4868117e1825d2b6811e56b53911cf5" },
-        { "dest": "libggml-blas.0.dylib",  "sha256": "a2dac32ec8fd369127aed689e4e15c2169a5e9e5a3bf23115ed9dbffe89f4727", "content_sha256": "64a5c69ab7d07358b3c6d4063316400f7d6306589e9bc54d7de9d8214a4cc0ba" }
+        { "dest": "whisper-cli",           "sha256": "058267ba3a9185679748bab1b24fdc0a4a17b128342a16f2ed14b2209814c46c", "content_sha256": "a52a25ec835859ae49dd6a228ca45fdc45c97d0236195cf5e191109fdce5e88d" },
+        { "dest": "libwhisper.1.dylib",    "sha256": "7e85b5c525f1802870740a04a83fff6e7a75e0224013f2993c8df49be77e5759", "content_sha256": "b735f645feb6d04a016f77464e0c3380a360acf3b745b7105b31eb91b0a369f9" },
+        { "dest": "libggml.0.dylib",       "sha256": "280ee636ad994fad2a5d63fe5ccba3641e0a4ed7e8caee710ba901bc960941ce", "content_sha256": "b8b368180d0f6c9bca20915bbfb1d3787b619180e9b4356f9dd7579beeeb0ef6" },
+        { "dest": "libggml-base.0.dylib",  "sha256": "6aa7d394201796b1b9127315d4720f1f758c9fde002843712d867e319043ec71", "content_sha256": "e9ae65143a903d82952034f8bf4dc1b1da606aff2914ffedca8bc8b637fd7e51" },
+        { "dest": "libggml-cpu.0.dylib",   "sha256": "3a45a4510e82240d3849ddfea4fd6336d90ad5fb27bd1497e309d3ef93c88734", "content_sha256": "2b012cf0a4813c86da143b73978a893e051bd9c7bdd96131bf687df9bcfd0cf7" },
+        { "dest": "libggml-metal.0.dylib", "sha256": "f2c78e60977b42d8227494869516a3cfa71bcd0a5a63c1ef70ec673d4dcfac71", "content_sha256": "bbc530d2fb47e943fe36f8ea28667100787b296911db0442a174f2d1c9bf222a" },
+        { "dest": "libggml-blas.0.dylib",  "sha256": "590d88fc7ad719a8a6aeab457fa424e596c7f852f482b4658ed338308a482108", "content_sha256": "25f5b48105cddb984b5b5bae952de6ce757f87bb96edf42f84961cd9c0989ef2" }
       ]
     },
     "macos-x86_64": {
@@ -103,16 +103,16 @@
       "license_holder": "The ggml authors (whisper.cpp + ggml)",
       "license_file": "whisper.cpp-LICENSE.txt",
       "binary_member": "whisper-cli",
-      "binary_sha256": "34f456842f10862482185907fd5ec18495ce2d6fbb1973a1dbc532734bec9793",
-      "content_sha256": "f9ee50cace5f87594254d3c9e24ae8ab20198c3d5239189dd34f5c345adeb943",
+      "binary_sha256": "b2e4c85c0406691f086e0b561a6a62be0b1daf18d207f5a58f5228069a78637e",
+      "content_sha256": "9a8f4ab366d3b06b0d877751a438443644deffd887f4f9cc50d389a3e2ab2f4a",
       "members": [
-        { "dest": "whisper-cli",           "sha256": "34f456842f10862482185907fd5ec18495ce2d6fbb1973a1dbc532734bec9793", "content_sha256": "f9ee50cace5f87594254d3c9e24ae8ab20198c3d5239189dd34f5c345adeb943" },
-        { "dest": "libwhisper.1.dylib",    "sha256": "9b1c663b213ad220dd26a8cfae0921c424a4d0b8ce04a94d8b2db01e5b6b13b8", "content_sha256": "432a2bca5b73d03dea50074dae2aff3c73e7bb4b13c6ee6d84e5e07beb0f5cc8" },
-        { "dest": "libggml.0.dylib",       "sha256": "8a155cf496d5e46bc715be9c37b5a3f77cafd93741c57c820790ef201ba0e552", "content_sha256": "3f6094b05d0c4b39c70b2e81c6467a355ccb186828e5e31d44dad9304f86f03a" },
-        { "dest": "libggml-base.0.dylib",  "sha256": "a890b533f2fc642acdb8a32a295a9bf82c4ddd5173af9ebe766674acbb4d5d2b", "content_sha256": "4bfa4588a93cea123c21ab489fd25f4e191a6c71e98d6fc3d24abfc1e21d27dd" },
-        { "dest": "libggml-cpu.0.dylib",   "sha256": "5119ab67e46af80071a1c6d7a31de88f08a007b3ad4460bb2f108db7b7dcdd8f", "content_sha256": "bad59948506f1da0cdb14ab9e3b46195ac40c6fe531dd5ed1f52d7f3a404996d" },
-        { "dest": "libggml-metal.0.dylib", "sha256": "7b65574542679c8b451e848124514f5590e7f0c12da6bee341fdb633d1f51828", "content_sha256": "e94b9d15e13a1d2085ddc846f91f2ef66f3a1d3911e5f7505a344453d68cfcbc" },
-        { "dest": "libggml-blas.0.dylib",  "sha256": "4bf893d4d52d0c476b669967e9f751a3ec5c1bad55cc39c3fc2bcabc829c956a", "content_sha256": "8e7d312519ac3b10e46af4787290b855a42106927b8fa3aabe97a01c48a14903" }
+        { "dest": "whisper-cli",           "sha256": "b2e4c85c0406691f086e0b561a6a62be0b1daf18d207f5a58f5228069a78637e", "content_sha256": "9a8f4ab366d3b06b0d877751a438443644deffd887f4f9cc50d389a3e2ab2f4a" },
+        { "dest": "libwhisper.1.dylib",    "sha256": "ea5419c4d163497778062f21259f97f7768e414f02fb4814a25efac4151e2a5a", "content_sha256": "7f1422ea77e946012e531b27d8d937adc72d1c13ecd6a2b13a7a674d27e7e942" },
+        { "dest": "libggml.0.dylib",       "sha256": "6bc553b04757709beb726696f8f5f84c9776ff98fdf39f8bb864c6927b0a18d7", "content_sha256": "369379a59f4600b1fae78a99704c4266adfaec89036fcf97c215e4a5bba87cf7" },
+        { "dest": "libggml-base.0.dylib",  "sha256": "02a5f217a9bc6ab0ab2cf8aa4efa70716006db7241ad30026f7740ea926a526b", "content_sha256": "8fa1e8235a32fda1f258ffdada8a592090ba2a33239996f576ed3fb3fdb096e0" },
+        { "dest": "libggml-cpu.0.dylib",   "sha256": "a0e0d036277cc3e5d555bd288f8a317d67a2f4623e42163bbb6db2f62a480dbd", "content_sha256": "9d4144a634ebe0a157cabeccf1847b8bdb3e24c2c6966750e39972d1db00343a" },
+        { "dest": "libggml-metal.0.dylib", "sha256": "1f1fa0b4dfd6d0e8273985ea56bed250d3fde718cee900f03d9e5156a385e6a0", "content_sha256": "077859ab32dae48e1ccb1afa1a5c6e291848d4878afe101dd656059a8a3a2ed0" },
+        { "dest": "libggml-blas.0.dylib",  "sha256": "7df1ec4f36bd1188a2eb028685aa21ef4184ee7d936cba781d1ae842be93298d", "content_sha256": "0f48777dd40d3c845ef98ad48dec7c0aa6372b1fe2f6b9cfe96ed62ed2d4e939" }
       ]
     }
   }

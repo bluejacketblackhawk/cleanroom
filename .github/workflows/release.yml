@@ -277,13 +277,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Key the cache on ONLY the pin JSONs' mac entries (+ sherpa models[], bundled on mac too),
-      # so a Windows-only pin bump does not needlessly invalidate the expensive mac build.
-      - name: Derive mac-sidecar cache key from pin mac entries
+      # Key the cache on ONLY the pin JSONs' mac SOURCE-side entries — never the recorded
+      # output hashes. ffmpeg/whisper are BUILT from source and not bit-reproducible across
+      # toolchains, so their binary_sha256/content_sha256 get RE-RECORDED whenever the
+      # compiler drifts (the procedure in whisper-pin.json's header). If those output hashes
+      # fed the key, every re-record would evict the very cache holding the binaries the new
+      # pins describe, forcing a fresh (differently-hashed) build — a self-inflicted loop
+      # (this exact loop broke the first v0.1.1 run). sherpa is a fetched prebuilt, so its
+      # full entry (hashes included) IS its source identity and stays in the key.
+      - name: Derive mac-sidecar cache key from pin mac entries (source-side fields only)
         run: |
           {
-            jq -S '{ffmpeg: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"], forbidden: .forbidden_configure_markers}}' scripts/ffmpeg-pin.json
-            jq -S '{whisper: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"]}}' scripts/whisper-pin.json
+            jq -S '{ffmpeg: {aarch64: (.targets["macos-aarch64"] | {version, source_url, configure_line, third_party}), x86_64: (.targets["macos-x86_64"] | {version, source_url, configure_line, third_party}), forbidden: .forbidden_configure_markers}}' scripts/ffmpeg-pin.json
+            jq -S '{whisper: {aarch64: (.targets["macos-aarch64"] | {version, source_url, source_ref, build_flags, deployment_target}), x86_64: (.targets["macos-x86_64"] | {version, source_url, source_ref, build_flags, deployment_target})}}' scripts/whisper-pin.json
             jq -S '{sherpa: {aarch64: .targets["macos-aarch64"], x86_64: .targets["macos-x86_64"], models: .models}}' scripts/sherpa-pin.json
           } > mac-pins.lock
           echo "mac-pins.lock:"; cat mac-pins.lock
@@ -298,6 +304,11 @@ jobs:
             .cache/whisper
             .cache/sherpa
           key: mac-sidecars-v1-${{ hashFiles('mac-pins.lock') }}
+          # Same-source older caches (e.g. the run whose binaries the pins were just
+          # re-recorded from) restore as a starting point: the build scripts reuse the
+          # restored .cache/ artifacts, keeping rebuild output byte-stable with the pins.
+          restore-keys: |
+            mac-sidecars-v1-
 
       # ffmpeg: LGPL-clean, built from source per-arch (no LGPL mac prebuilt exists). ~20 min/arch.
       # whisper.cpp: v1.9.1 has no mac release → built from source per-arch. sherpa: universal2

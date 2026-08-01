@@ -67,15 +67,15 @@ pub const WHISPER_PINS: &[SidecarPin] = &[
     SidecarPin {
         target: "macos-aarch64",
         version: "v1.9.1",
-        binary_sha256: "f0083e6b0911cfbf9ac3330f6d46ee822d76cf8059e822bc23705a47086def5d",
-        content_sha256: Some("1d7b4f84e67f4a96ed7f7b2d599f494a386d5cc3807af4ca708f4d70e0e8a0d4"),
+        binary_sha256: "058267ba3a9185679748bab1b24fdc0a4a17b128342a16f2ed14b2209814c46c",
+        content_sha256: Some("a52a25ec835859ae49dd6a228ca45fdc45c97d0236195cf5e191109fdce5e88d"),
         license: "MIT",
     },
     SidecarPin {
         target: "macos-x86_64",
         version: "v1.9.1",
-        binary_sha256: "34f456842f10862482185907fd5ec18495ce2d6fbb1973a1dbc532734bec9793",
-        content_sha256: Some("f9ee50cace5f87594254d3c9e24ae8ab20198c3d5239189dd34f5c345adeb943"),
+        binary_sha256: "b2e4c85c0406691f086e0b561a6a62be0b1daf18d207f5a58f5228069a78637e",
+        content_sha256: Some("9a8f4ab366d3b06b0d877751a438443644deffd887f4f9cc50d389a3e2ab2f4a"),
         license: "MIT",
     },
 ];
